@@ -1343,6 +1343,19 @@
     [0, .07, .14].forEach((d, i) => setTimeout(() => noise(.06, .45, 1200 - i * 260, 500), d * 1000));
     setTimeout(() => { tone(760, 520, .5, .16, 'triangle'); noise(.55, .3, 420, 130); }, 240);
   };
+  // Case closed. Every other sound in the room is mechanical — this is the one
+  // musical statement, and it only ever plays once per solve: three rising
+  // notes, then a warm chord held while the room settles. D minor rising to a
+  // major landing, because the case ends solved but nobody gets the diamond.
+  const sSolved = () => {
+    [[147, 0], [220, .17], [294, .34]].forEach(([f, d]) =>
+      setTimeout(() => tone(f, f, .36, .15, 'triangle'), d * 1000));
+    setTimeout(() => {
+      [147, 220, 294, 370].forEach((f, i) =>
+        tone(f * 1.003, f, 2.1, i === 3 ? .09 : .07, i < 2 ? 'sine' : 'triangle'));
+      noise(1.4, .05, 820, 220);          // the building exhaling
+    }, 600);
+  };
 
   // ── Intro ───────────────────────────────────────────────────────────
   const lines = [...document.querySelectorAll('#lines span')];
@@ -2475,6 +2488,9 @@
   const LOCKS = ['#lock1', '#lock2', '#lock3', '#lock4', '#lock5'];
   function unlock(which, silent) {
     if (!silent) sOpen();
+    // The verdict lands as the last drawer finishes its slide — a restored
+    // session stays quiet, the same as every other sound on the restore path.
+    if (which === 5 && !silent) setTimeout(sSolved, 700);
     for (let i = 1; i <= which; i++) {
       const s = $('#slot' + i);
       s.classList.add('opened'); s.classList.remove('armed');
