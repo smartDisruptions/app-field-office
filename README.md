@@ -1,29 +1,37 @@
-# Field Office — an escape-room résumé
+# The Pembroke File — a locked-cabinet mystery
 
-An interactive résumé played as an escape room. A locked filing cabinet, five
-drawers, five locks — and every answer is written somewhere in the room. Solving
-the cabinet means actually reading the file.
+A noir mystery played through a filing cabinet. The Pembroke Diamond —
+thirty-four carats, blue-white — left the Ashford Museum in three minutes of
+dark. The insurance investigator who worked the claim filed nothing for three
+weeks and vanished, leaving his case file locked in the cabinet by the window.
+
+Five drawers, five locks, and every answer is written somewhere in the room.
+Opening the cabinet means actually reading the case — and the last name in it
+was never filed at all.
 
 **Play it:** https://app-field-office.vercel.app
 
 ## The rooms
 
-1. **Brass dial** — three numbers, all on the memo above the cabinet.
-2. **Torn page** — drawer two's sheet comes back in twelve pieces; reassemble it
-   to read the answer to the switch-bank lock.
-3. **Jammed card tray** — a sliding-block puzzle (17 moves minimum, BFS-verified);
-   freeing the red card releases the filing slip the wire board wants.
-4. **Dead desk lamp** — turn the conduit in the junction box until the live line
-   reaches the lamp; only then can the desk pad be seen.
-5. **The pencil rubbing** — the last word isn't written anywhere. Shade over the
-   desk pad and it comes up light out of the graphite.
+1. **Brass dial** — three figures, all on the insurer's bulletin.
+2. **Torn page** — the investigator's reconstruction of the route, torn to
+   pieces by somebody who wanted the case closed. Reassemble it to learn which
+   four alarms were bypassed.
+3. **Jammed card tray** — a sliding-block puzzle (17 moves minimum,
+   BFS-verified); freeing the marked canvass card releases the slip the wire
+   board wants.
+4. **Dead desk lamp** — the investigator left the junction box in pieces so
+   nobody could read his desk at night. Rebuild the circuit.
+5. **The pencil rubbing** — he wrote the name once, bore down hard, and took
+   the sheet. Shade over the desk pad and the impression comes up light out of
+   the graphite.
 
 ## Build
 
 A single HTML file. No dependencies, no build step, no network calls.
 Canvas physics (Verlet chain), Web Audio synthesis, pointer-event puzzles,
 `prefers-reduced-motion` support, keyboard paths for every puzzle, and
-`localStorage` resume.
+`localStorage` resume. Both sliding-block boards were generated and
+difficulty-verified by breadth-first search before shipping.
 
-Built with [Claude Code](https://claude.com/claude-code) — this game is itself
-an exhibit of the workflow it describes.
+Built with [Claude Code](https://claude.com/claude-code).

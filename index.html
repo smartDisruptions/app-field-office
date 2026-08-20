@@ -1,4 +1,4 @@
-<title>Field Office — an escape-room résumé</title>
+<title>The Pembroke File — a locked-cabinet mystery</title>
 <style>
   /* ── Tokens ───────────────────────────────────────────────────────────
      A field office after hours: one desk lamp, an oak cabinet, brass
@@ -659,11 +659,13 @@
 
 <div class="intro" id="intro">
   <div class="introBody">
-    <h1>Field Office · After Hours</h1>
+    <h1>The Pembroke File · After Hours</h1>
     <div class="lines" id="lines">
-      <span>The building emptied out an hour ago.</span>
-      <span>There is one cabinet by the window, and it is locked.</span>
-      <span>The man whose file is inside has gone home for the night.</span>
+      <span>The building emptied out an hour ago. Rain since dark.</span>
+      <span>Third floor, blinds drawn: T. Kestrel, the field man on the
+        Pembroke Diamond claim.</span>
+      <span>Three weeks since anyone saw him. His case file is still here,
+        locked in the cabinet by the window.</span>
       <span>&nbsp;</span>
       <span>Everything you need is written down somewhere in this room.</span>
       <span><em>Nothing is hidden. Nothing is a trick.</em></span>
@@ -678,23 +680,21 @@
 </div>
 
 <div class="col">
-  <p class="roomline" id="roomId">Room 1 of 5 · Field Office · After Hours</p>
+  <p class="roomline" id="roomId">Room 1 of 5 · The Pembroke File · After Hours</p>
   <div class="memo">
-    <h2>Interoffice Memorandum</h2>
+    <h2>Continental Indemnity — Bulletin to File</h2>
     <span class="stamp">SEALED</span>
-    <div class="to"><span>TO: FILE</span><span>RE: ESCUSA, J.</span><span>MOSCOW, IDAHO</span></div>
-    <!-- The dial only has forty notches, so a four-digit year cannot go in
-         whole. Setting the last two apart is the memo showing which half of
-         itself the lock can actually take. -->
-    <p>Enterprise Developer since <span class="yr">20<b>24</b></span> — financial aid systems at a
-      public university, written in Oracle SQL and Pro*C against Banner. Rebuilt
-      the Net Price Calculator in-house and retired the vendor licence it
-      replaced.</p>
-    <p><b>Three</b> years of building alongside a model, daily, on real work
-      rather than demos. <b>Thirty-four</b> projects now sit in one folder:
-      client sites, internal tools, a SaaS, games built with his son.</p>
-    <p>What is filed here is not a job history. It is how the work gets done —
-      and the method is the part that transfers.</p>
+    <div class="to"><span>TO: FILE</span><span>RE: PEMBROKE DIAMOND · CLAIM 1129</span><span>ASHFORD MUSEUM</span></div>
+    <!-- The bulletin carries all three dial figures, each set in bold so the
+         reading eye can find them without the prose saying "combination". -->
+    <p>The stone left the Ashford Museum on the night of the <b>24</b>th,
+      between the last patrol and the first bell. House lights were down for
+      <b>three</b> minutes. Nothing else in the gallery was touched.</p>
+    <p>The Pembroke Diamond: <b>thirty-four</b> carats, blue-white, a history
+      no underwriter should have touched — insured anyway, at the full sum.
+      Claim pending. Our field investigator has filed nothing in three weeks.</p>
+    <p>What is locked below is his working file. It is not the claim. It is
+      what actually happened.</p>
   </div>
 
   <div class="cabinet">
@@ -702,26 +702,28 @@
 
     <div class="slot armed" id="slot1" style="--openh:1150px">
       <div class="interior"><div class="folder">
-        <span class="tab">Drawer 1 — Where it started</span>
+        <span class="tab">Drawer 1 — The night of the 24th</span>
         <div class="sheet">
-          <h3>Working with a model, daily</h3>
-          <div class="org">2023 – present · three years, real work only</div>
-          <p>Not demos. Client sites, internal tools, a review system that runs
-            itself. The honest description is not that a model writes the code —
-            it is that decent logic gets amplified by something that never tires
-            of the boring half. The tool changed twice in three years; the
-            <span class="red" id="red1">method</span> did not.</p>
-          <div class="chips"><span class="chip">Daily practice</span><span class="chip">Shipped, not demoed</span><span class="chip">Self-taught</span></div>
+          <h3>A clean job, reported dirty</h3>
+          <div class="org">First report · Ashford Museum · case 1129</div>
+          <p>The papers called it the cleanest theft in the city's history:
+            case cut square, floor swept, three minutes of dark and not one
+            alarm with a word to say about it. The papers were half right.
+            Clean is a manner of speaking — the wire behind the gallery wall
+            was cut from <span class="red" id="red1">inside</span>, hours
+            before the doors ever closed.</p>
+          <div class="chips"><span class="chip">34 carats</span><span class="chip">Three minutes dark</span><span class="chip">No forced entry</span></div>
           <div class="next">Taped inside the drawer:<br>
-            <b>Drawer 2</b> — one word, six letters. The sorting frame under
-            this sheet holds the slip that names it. The frame is out of order,
-            and it will not give the slip up until it is put right.</div>
+            <b>Drawer 2</b> — one word, six letters. The word struck out above
+            names it, and the slip pinned under the photograph frame prints it.
+            The frame will not give the slip up out of order.</div>
         </div>
 
-        <p class="task" id="frameTask">A sorting frame, eight numbered plates and
-          one empty berth. A plate only moves if it is next to the gap — click it
-          to slide it across. Put them back in order, 1 to 8, and the frame
-          releases what is under them.</p>
+        <p class="task" id="frameTask">Eight numbered plates from the museum's
+          night reel, shuffled by somebody in a hurry. A plate only moves if it
+          is next to the empty berth — click it to slide it across. Put the
+          night back in order, 1 to 8, and the frame releases what is pinned
+          under it.</p>
         <div class="framewrap">
           <div class="frame" id="frame"></div>
         </div>
@@ -733,9 +735,10 @@
              is the whole point of drawer one, and a slip you could read early
              would make the frame decoration. -->
         <div class="slip" id="wordSlip" aria-live="polite">
-          <span class="slipHead">Slip · clipped under the plates</span>
-          The letter lock on drawer two takes the word struck out on this sheet:
-          <b>METHOD</b>. Six letters. It is the only thing in here that transfers.
+          <span class="slipHead">Slip · pinned under the plates</span>
+          The letter lock on drawer two takes the word struck out on the first
+          report: <b>INSIDE</b>. Six letters. Whoever cut that wire walked in
+          with keys.
         </div>
       </div></div>
       <div class="drawer"><span class="plate">Drawer 1 — Sealed</span><span class="pull"></span></div>
@@ -743,9 +746,11 @@
 
     <div class="slot" id="slot2" style="--openh:1250px">
       <div class="interior"><div class="folder">
-        <span class="tab">Drawer 2 — Agents and connections</span>
-        <p class="task" id="tornTask">This one came back torn. Drag the pieces
-          together — each will hold when it is close to where it belongs.</p>
+        <span class="tab">Drawer 2 — The reconstruction</span>
+        <p class="task" id="tornTask">Kestrel's reconstruction of the route —
+          and it came back to the file torn to pieces. Somebody's idea of
+          closing a case. Drag the pieces together; each will hold when it is
+          close to where it belongs.</p>
         <!-- The sheet is not in the DOM as a sheet: it is cloned twelve times,
              once per piece, each copy shifted and clipped so only its own
              fragment shows. Assembling the pieces is literally assembling the
@@ -755,20 +760,20 @@
         </div></div>
         <template id="page2">
           <div class="sheet pagefull">
-            <h3>Agentic development, wired to the work</h3>
-            <div class="org">Claude Code · Model Context Protocol · custom skills</div>
-            <p>The agent stopped being a chat window beside the editor and
-              became the editor. MCP servers wire it into the design file, the
-              database, the repo and the deploy — four places the work actually
-              lives — so context is no longer something you
-              <span class="red">paste</span>.</p>
-            <p>Custom skills encode how a job should be done once, and every
-              session after that does it the same way, without being told
-              again.</p>
-            <div class="chips"><span class="chip">Claude Code</span><span class="chip">MCP servers</span><span class="chip">Custom skills</span></div>
+            <h3>Three minutes, walked for a month</h3>
+            <div class="org">Movement study · night of the 24th · reconstructed</div>
+            <p>Take the route apart and it stops looking bold and starts
+              looking practiced. Four alarms were found bypassed that night,
+              and only four: the skylight, the gallery, the case, and the
+              loading dock. Not one wasted step between them.</p>
+            <p>Nobody improvises a three-minute museum in the dark. The route
+              had been <span class="red">rehearsed</span> until the dark
+              stopped mattering. My question was never how they got in. It was
+              who let them practice.</p>
+            <div class="chips"><span class="chip">Four alarms</span><span class="chip">No prints</span><span class="chip">Rope at the skylight</span></div>
             <div class="next">Taped inside the drawer:<br>
-              <b>Drawer 3</b> — the patch panel. Flip on the four places this
-              sheet says the agent is wired into, and nothing else.</div>
+              <b>Drawer 3</b> — the alarm panel. Flip the four this page says
+              were bypassed, and nothing else.</div>
           </div>
         </template>
       </div></div>
@@ -777,28 +782,31 @@
 
     <div class="slot" id="slot3" style="--openh:1150px">
       <div class="interior"><div class="folder">
-        <span class="tab">Drawer 3 — Automations</span>
+        <span class="tab">Drawer 3 — The canvass</span>
         <div class="sheet">
-          <h3>What runs when nobody is watching</h3>
-          <div class="org">Scheduled agents · cron routines · unattended publishing</div>
-          <p>A scheduler that opens and merges its own pull request is a
-            different thing from a script. It decides, and it does it while the
-            building is empty. The review system carries four of these on a
-            timer; the writing pipeline carries its own, and one of them shipped
-            an article with nobody
-            <span class="red" id="red3">watching</span>.</p>
-          <p>Every one of them files what it produces, and the filing slip for
-            this drawer is still in the card tray underneath — behind a rank of
-            guides that has jammed solid.</p>
-          <div class="chips"><span class="chip">Scheduled agents</span><span class="chip">Cron</span><span class="chip">Self-merging PRs</span></div>
+          <h3>Three things gone. Two came back.</h3>
+          <div class="org">Canvass · forty-one pawnshops · six fences · one harbor</div>
+          <p>The crew took pearls and bearer bonds along with the stone —
+            cover, and cheap cover at that. The pearls surfaced in a Tacoma
+            pawnshop inside a week. Ash from the bonds turned up in a boiler
+            on Dock 6. The men who carried them were
+            <span class="red" id="red3">paid</span> to be exactly that
+            careless.</p>
+          <p>The diamond went nowhere. No fence, no cutter, no whisper on any
+            coast. A thirty-four carat stone does not go quiet on its own — it
+            goes quiet when nobody is trying to sell it. The canvass card that
+            proved it is still in the tray underneath, jammed behind the
+            guides.</p>
+          <div class="chips"><span class="chip">Pearls: Tacoma</span><span class="chip">Bonds: burned</span><span class="chip">Diamond: silent</span></div>
           <div class="next">Taped inside the drawer:<br>
             <b>Drawer 4</b> — the wire board. It wants the pairings on that
-            filing slip, so the slip has to come out first.</div>
+            canvass slip, so the slip has to come out first.</div>
         </div>
 
-        <p class="task" id="trayTask">The tray only releases through the slot on
-          the right. Slide the guides out of the way and run the red card
-          out.</p>
+        <p class="task" id="trayTask">A card for every fence and pawnshop in
+          the canvass — and the guides jammed solid around the one that came
+          back marked. The tray only releases through the slot on the right.
+          Slide the guides out of the way and run the red card out.</p>
         <div class="traywrap"><div class="tray" id="tray">
           <div class="slotgap"></div>
         </div></div>
@@ -811,9 +819,9 @@
         <!-- The slip is the payload: it does not exist on the page until the
              card clears the tray, so the pairings cannot be read early. -->
         <div class="slip" id="slip" aria-live="polite">
-          <span class="slipHead">Filing slip · routines</span>
-          Decisions go to the vault. Steps go to the journal. Tasks go to the
-          board. Nothing is left for a human to sort afterwards.
+          <span class="slipHead">Canvass slip · card 41</span>
+          The pearls went to the pawnshop. The bonds went to the boiler. The
+          diamond went nowhere. Wire it the way it happened.
         </div>
       </div></div>
       <div class="drawer"><span class="plate">Drawer 3 — Sealed</span><span class="pull"></span></div>
@@ -821,31 +829,31 @@
 
     <div class="slot" id="slot4" style="--openh:1150px">
       <div class="interior"><div class="folder">
-        <span class="tab">Drawer 4 — The second brain</span>
+        <span class="tab">Drawer 4 — The stone itself</span>
         <div class="sheet">
-          <h3>A wiki the agents read and write</h3>
-          <div class="org">Obsidian vault · one entry point · every note self-describing</div>
-          <p>A model with no memory re-earns your context every session. So the
-            context moved out of the chat and into a vault: one index page, every
-            note carrying its own description, any fact two hops from home. It
-            survived a fortnight of real use with no manual
-            <span class="red" id="red4">cleanup</span> — and twice it caught its
-            own recorded beliefs being wrong and corrected them mid-session.</p>
-          <p>It holds the pipeline as well as the facts, in the order the work
-            runs: spec, then plan, then QA, then ship. A fresh session picks that
-            up and runs it the way I would.</p>
-          <div class="chips"><span class="chip">Obsidian</span><span class="chip">Loaded every session</span><span class="chip">Self-correcting</span></div>
+          <h3>Nobody steals what was never there</h3>
+          <div class="org">Appraisal records · two years back · a quiet sale</div>
+          <p>I stopped asking where the diamond went and asked where it had
+            been. The appraisal on file with us is two years stale, and the man
+            who signed it left the trade the same month — comfortable,
+            suddenly, in a house no appraiser's salary buys.</p>
+          <p>The Pembroke Diamond was sold abroad two years ago, quietly, cut
+            into three stones nobody will ever trace. What sat in the Ashford's
+            case — what this city watched get stolen, what we are asked to pay
+            the full sum for — was <span class="red" id="red4">glass</span>.</p>
+          <div class="chips"><span class="chip">Stale appraisal</span><span class="chip">A quiet sale</span><span class="chip">Claim 1129, reopened</span></div>
           <div class="next">Taped inside the drawer:<br>
-            <b>Drawer 5</b> — nothing in this cabinet names it. I tore the top
-            sheet off the desk pad and took it home; the pad is still under the
-            blotter. You will not see a thing down there until the desk lamp is
-            back — I had the junction box open and left the conduit in pieces.</div>
+            <b>Drawer 5</b> — the name is not in this cabinet. I wrote it once
+            on the desk pad, bore down hard, and took the sheet with me. And I
+            put the office dark before I left: the lamp's junction is in
+            pieces, so nobody reads this desk at night. Put it back together
+            and see for yourself.</div>
         </div>
 
-        <p class="task" id="circuitTask">The junction box for the desk lamp is
-          screwed inside the drawer, and every length of conduit in it is turned
-          the wrong way. Click a piece to turn it. Feed the live line at the
-          bottom left all the way to the lamp terminal at the top right.</p>
+        <p class="task" id="circuitTask">The junction box for the desk lamp,
+          exactly as Kestrel left it — every length of conduit turned wrong on
+          purpose. Click a piece to turn it. Feed the live line at the bottom
+          left all the way to the lamp terminal at the top right.</p>
         <div class="boxwrap">
           <div class="jbox" id="jbox">
             <span class="feed">live</span>
@@ -861,21 +869,25 @@
 
     <div class="slot" id="slot5">
       <div class="interior"><div class="folder">
-        <span class="tab">Drawer 5 — Agent teams</span>
+        <span class="tab">Drawer 5 — The name</span>
         <div class="sheet">
-          <h3>More than one at a time</h3>
-          <div class="org">Multi-phase review · parallel subagents · one human holding the yes</div>
-          <p>One agent is an assistant. Several, with different jobs and a fixed
-            order, are a team: one plans, several build in parallel, others
-            review against separate lenses, and a last one checks the work
-            against the brief rather than against itself. That is the pipeline
-            that produced most of the thirty-four projects in the folder.</p>
-          <p>What does not get delegated is the judgment. The facts, the pricing,
-            the client-facing promises and the final yes stay with the person
-            whose name is on the file.</p>
-          <div class="chips"><span class="chip">Multi-phase review</span><span class="chip">Parallel subagents</span><span class="chip">Human keeps the yes</span></div>
-          <div class="next">The cabinet is empty. Everything in it was true, and
-            every bar you lifted is still lifted.</div>
+          <h3>The man who stole his own stone</h3>
+          <div class="org">Closing note · unsigned · never filed</div>
+          <p>Pembroke sold the real diamond two years ago to cover what the
+            market took from him. Then he insured the glass, hired a crew to
+            steal it in front of the whole city, and waited for us to pay him
+            the full sum for a stone he had already been paid for once. The
+            pearls, the bonds, the torn page in this file — all of it bought to
+            keep one stale signature from being read twice.</p>
+          <p>I sat across his desk and said the name out loud. He wrote a
+            number on a card and slid it over. I left the card, mailed back the
+            retainer, and filed the truth where the truth keeps: in a locked
+            drawer, in a dark office, for whoever bothers to read a file all
+            the way through. — T.K.</p>
+          <div class="chips"><span class="chip">Retainer returned</span><span class="chip">Unsigned</span><span class="chip">Case 1129: open</span></div>
+          <div class="next">That is the whole file. The stone was glass; the
+            theft was real. Every bar you lifted is still lifted, and the name
+            stays where he pressed it.</div>
         </div>
       </div></div>
       <div class="drawer"><span class="plate">Drawer 5 — Sealed</span><span class="pull"></span></div>
@@ -885,7 +897,7 @@
   <!-- Room 1 — brass dial -->
   <div class="lock live" id="lock1">
     <p class="note">Turn the dial to a number, then press Enter to set it.<br>
-      Three numbers open it.</p>
+      Three numbers open it — all three on the bulletin above.</p>
     <div class="window"><span id="dialNum">00</span></div>
     <div class="dial" id="dial" tabindex="0" role="slider"
          aria-label="Combination dial, 0 to 39. Arrow keys turn it; use the Enter button to set the number."
@@ -902,23 +914,23 @@
   <!-- Room 2 — word lock -->
   <div class="lock" id="lock2">
     <p class="note">Six letters, then pull.<br>
-      The slip from drawer one's sorting frame prints it outright.</p>
+      The slip under drawer one&#8217;s photograph frame prints it outright.</p>
     <div class="wheels" id="wheels2"></div>
     <button class="lever" data-lock="2">Pull</button>
   </div>
 
-  <!-- Room 3 — time lock -->
+  <!-- Room 3 — switch bank -->
   <div class="lock" id="lock3">
-    <p class="note">Flip on what the agent is wired into, then pull.<br>
-      Drawer two names them in one sentence — and says how many.</p>
+    <p class="note">Flip the alarms that were bypassed, then pull.<br>
+      Drawer two&#8217;s reconstruction names them in one sentence — and says how many.</p>
     <div class="switchbank" id="switchbank"></div>
     <button class="lever" data-lock="3">Pull</button>
   </div>
 
   <!-- Room 4 — wire board -->
   <div class="lock" id="lock4">
-    <p class="note">Wire each thing to where it is filed, then pull.<br>
-      The filing slip from the card tray pairs them in three short sentences.</p>
+    <p class="note">Wire each thing to where it went, then pull.<br>
+      The canvass slip from the card tray pairs them in three short sentences.</p>
     <div class="board" id="board">
       <svg id="cables"></svg>
       <div class="rows" id="rows"></div>
@@ -929,15 +941,16 @@
   <!-- Room 5 — the notepad. The only lock whose answer is not written anywhere
        in the file; you have to work the object to bring it up. -->
   <div class="lock" id="lock5">
-    <p class="note">The last word is not in any of the drawers.<br>
-      It is on the pad — drag a pencil across it until it comes up, then set it
-      and pull.</p>
+    <p class="note">The last name in the case was never filed.<br>
+      It is pressed into the desk pad — drag a pencil across the page until it
+      comes up, then set it and pull.</p>
     <!-- The pad stays under the blotter until the desk lamp is lit, so the
          junction box is load-bearing rather than a decoration you can walk
          past — and it pays off the chain-pull the room opened with. -->
     <div class="padstage covered" id="padStage">
       <p class="blotter" id="padCover">The desk blotter is shut over something.
-        Drawer four's note says what — once it can be read.</p>
+        Drawer four&#8217;s note says whose name is under it — once there is lamplight
+        to work by.</p>
       <div class="padwrap">
         <canvas class="pad" id="pad" width="920" height="360" tabindex="0"
           aria-label="A blank notepad. Drag across it to shade over the sheet and raise the impression left by the page above."></canvas>
@@ -949,8 +962,8 @@
   </div>
 
   <div class="lock" id="lockDone">
-    <p class="note"><b>The cabinet is open.</b> Five drawers, one method — and
-      every word that was blacked out is now on the page.</p>
+    <p class="note"><b>The cabinet is open.</b> Five drawers, one name — and
+      every word that was blacked out is back on the page.</p>
   </div>
 
   <p class="hint" id="hint"></p>
@@ -969,68 +982,68 @@
   const $ = s => document.querySelector(s);
   const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const NOTCHES = 40;
-  const KEY = 'fieldoffice.v3';
+  const KEY = 'pembroke.v1';
 
   // Answers. Each one is stated plainly in the document that opened most
   // recently, so every lock is answerable from what is already on screen.
-  const COMBO = [24, 3, 34];        // memo: since 2024, three years, thirty-four projects
-  const WORD  = 'METHOD';           // memo's closing line; blacked out in drawer 1
-  // The four places drawer 2 says the agent is wired into. Three plausible
-  // decoys sit alongside them, so skimming the sentence is not enough — you
-  // have to notice which four it actually names.
-  const WIRED = ['design', 'database', 'repo', 'deploy'];
+  const COMBO = [24, 3, 34];        // bulletin: the 24th, three minutes, thirty-four carats
+  const WORD  = 'INSIDE';           // struck out on drawer 1's report; printed on the slip
+  // The four alarms drawer 2's reconstruction says were bypassed. Three
+  // plausible decoys sit alongside them, so skimming the sentence is not
+  // enough — you have to notice which four it actually names.
+  const WIRED = ['skylight', 'gallery', 'case', 'dock'];
   // Order matters: the panel is two columns, so a simple correct/decoy
   // alternation would drop every right answer into the left column and the
   // lock could be solved by geometry without reading a word.
   const SWITCHES = [
-    { k: 'design',      label: 'the design file' },
-    { k: 'inbox',       label: 'the inbox' },
-    { k: 'calendar',    label: 'the calendar' },
-    { k: 'database',    label: 'the database' },
-    { k: 'repo',        label: 'the repo' },
-    { k: 'spreadsheet', label: 'the spreadsheet' },
-    { k: 'deploy',      label: 'the deploy' },
+    { k: 'skylight', label: 'the skylight' },
+    { k: 'doors',    label: 'the front doors' },
+    { k: 'vault',    label: 'the vault room' },
+    { k: 'gallery',  label: 'the gallery' },
+    { k: 'case',     label: 'the case' },
+    { k: 'boiler',   label: 'the boiler room' },
+    { k: 'dock',     label: 'the loading dock' },
   ];
-  const PAIRS = { decisions: 'vault', steps: 'journal', tasks: 'board' };  // drawer 3
-  // Not from a drawer — pressed into the pad by the sheet that was torn off it.
-  // Deliberately the one answer you cannot read your way to, and deliberately
-  // the one thing the file says never gets handed to a machine.
-  const PRESSED = 'JUDGMENT';                                              // the pad
+  const PAIRS = { pearls: 'pawnshop', bonds: 'boiler', diamond: 'nowhere' };  // canvass slip
+  // Not from a drawer — pressed into the pad by the sheet Kestrel took with
+  // him. Deliberately the one answer you cannot read your way to: the name he
+  // never dared file, only bore down on.
+  const PRESSED = 'PEMBROKE';                                              // the pad
 
   // Four rungs per lock. The first gives direction only — narrowing the answer
   // on the first miss makes the lock decorative.
   // Three rungs, and none of them says the answer. The room's whole promise is
   // that everything is already written down, so a ladder that ends by reciting
-  // it makes the reading optional — and the reading is the résumé. The third
+  // it makes the reading optional — and the reading is the case. The third
   // rung points hard enough that anyone who has actually read the document can
   // finish; past that it repeats rather than concedes.
   const HINTS = {
     1: [
-      'Not it. Everything the dial needs is on the memo above.',
-      'Three of the memo’s figures are set apart from the rest of the text. Those three, in the order it gives them.',
-      'Two are spelled out as words. The third is a year — and a dial that stops at thirty-nine can only take its last two digits.',
+      'Not it. Everything the dial needs is on the insurer’s bulletin above.',
+      'Three of the bulletin’s figures are set in bold, apart from the rest of the type. Those three, in the order it gives them.',
+      'Two are spelled out as words — the minutes and the carats. The third is the night of the month it happened, and the dial takes it whole.',
     ],
     2: [
-      'Not it. Six letters, and the slip under drawer one’s sorting frame prints the word outright.',
-      'If that slip has not appeared yet the frame is still shuffled — put the eight plates back in order, 1 to 8, and it comes free.',
-      'It is the word struck out on drawer one’s sheet, and the word the memo closes with: the part of the work that transfers, rather than the work itself.',
+      'Not it. Six letters, and the slip pinned under drawer one’s photograph frame prints the word outright.',
+      'If that slip has not appeared yet the plates are still shuffled — put the night back in order, 1 to 8, and it comes free.',
+      'It is the word struck out on the first report: where the alarm wire was cut from, hours before the doors closed.',
     ],
     3: [
-      'Not it. Drawer two names them in one sentence, and tells you how many there are.',
-      'Four places, and three of the switches on this panel are not among them.',
-      'Find the sentence about what MCP wires the agent into. It lists them in order; nothing outside that list belongs.',
+      'Not it. The reconstruction in drawer two names them in one sentence, and says how many there were.',
+      'Four alarms, and three of the switches on this panel were never touched that night.',
+      'Find the sentence about what was found bypassed. The four it lists, in the order it lists them — nothing outside that list belongs.',
     ],
     4: [
-      'Not it. Every pairing is on the filing slip that came out of the card tray.',
-      'Three destinations: a vault, a journal, a board. Each one takes a different kind of thing.',
-      'The slip names them in three short sentences, in the same order as the three terminals down the left of the board. Take them one at a time.',
+      'Not it. Every pairing is on the canvass slip that came out of the card tray.',
+      'Three things left the museum that night, and each went somewhere different — one of them nowhere at all.',
+      'The slip tells it in three short sentences, in the same order as the three terminals down the left of the board. Take them one at a time.',
     ],
     // This ladder teaches an action, not a fact: re-reading the drawers cannot
     // produce this answer, so a rung that says "look again" would be a lie.
     5: [
-      'Not it — and it is not written anywhere you can see yet. Drawer four says the desk lamp is out and the junction box is in pieces, and the pad is under the blotter in the dark.',
-      'Turn the conduit until the live line at the bottom left runs unbroken to the lamp terminal at the top right. The pieces already carrying current are the lit ones — follow them.',
-      'With the lamp on, the pad is there to work. Shade over it the way you would with the side of a pencil and cover all of it — the grooves will not take the graphite. Eight letters.',
+      'Not it — and it is not written anywhere you can see. The lamp is dead: drawer four says Kestrel left the junction in pieces so this desk could not be read at night.',
+      'With the lamp lit, the blotter opens. He wrote the name once on the pad, bore down hard, and took the sheet — the impression stayed behind.',
+      'Shade over the whole pad with the flat of the pencil, and cover all of it — the grooves will not take the graphite. Eight letters, and it is a name you have read tonight.',
     ],
   };
 
@@ -1380,20 +1393,26 @@
   }
 
   // ── Wire board ──────────────────────────────────────────────────────
-  const LEFT = ['decisions', 'steps', 'tasks'];
-  const RIGHT = ['journal', 'board', 'vault'];   // deliberately not in matching order
+  const LEFT = ['pearls', 'bonds', 'diamond'];
+  const RIGHT = ['boiler', 'nowhere', 'pawnshop'];   // deliberately not in matching order
   const rows = $('#rows'), cables = $('#cables');
   const wires = {};             // left -> right
   let picked = null;
   const leftEls = {}, rightEls = {};
+  // "nowhere" takes no article — it is a verdict, not a place — so labels are
+  // spelled out instead of built from "the " + key.
+  const TERM_LABEL = {
+    pearls: 'the pearls', bonds: 'the bonds', diamond: 'the diamond',
+    boiler: 'the boiler', nowhere: 'nowhere', pawnshop: 'the pawnshop',
+  };
   LEFT.forEach((l, i) => {
     const a = document.createElement('button');
     a.className = 'term'; a.dataset.side = 'l'; a.dataset.k = l;
-    a.innerHTML = `<span class="jackdot"></span><span>${l}</span>`;
+    a.innerHTML = `<span class="jackdot"></span><span>${TERM_LABEL[l]}</span>`;
     const m = document.createElement('div'); m.className = 'mid'; m.textContent = '·····';
     const b = document.createElement('button');
     b.className = 'term right'; b.dataset.side = 'r'; b.dataset.k = RIGHT[i];
-    b.innerHTML = `<span class="jackdot"></span><span>the ${RIGHT[i]}</span>`;
+    b.innerHTML = `<span class="jackdot"></span><span>${TERM_LABEL[RIGHT[i]]}</span>`;
     rows.append(a, m, b);
     leftEls[l] = a; rightEls[RIGHT[i]] = b;
   });
@@ -1717,8 +1736,8 @@
     outline.classList.add('gone');
     torn.classList.add('whole');
     $('#tornTask').classList.add('spent');
-    $('#tornTask').textContent = 'The page is whole. It names four places, and says how many.';
-    if (!quiet) { sOpen(); live.textContent = 'The page is whole and can be read.'; }
+    $('#tornTask').textContent = 'The reconstruction is whole. It names four alarms — and says only four.';
+    if (!quiet) { sOpen(); live.textContent = 'The reconstruction is whole and can be read.'; }
   }
 
   function wirePiece(p) {
@@ -1771,7 +1790,7 @@
   const CELL = 62, GRID = 6;
   // Nine guides, seventeen moves at best — breadth-first searched, not guessed.
   // The first board fell in nine and was over before it started; the second ran
-  // to forty-two and stopped being a puzzle on the way to the résumé.
+  // to forty-two and stopped being a puzzle on the way through the file.
   const START = [
     { id: 'K', r: 2, c: 0, len: 2, dir: 'h', key: true },
     { id: 'b', r: 0, c: 2, len: 3, dir: 'v' },
@@ -1936,12 +1955,11 @@
     releaseSlip(true);
   }
 
-  // ── Sorting frame (gates lock 2) ────────────────────────────────────
-  // Working METHOD out meant tying drawer one's blacked-out word to the memo's
-  // closing line, which is a leap. The word is now printed on a slip, and the
-  // frame is what stands between you and it — the difficulty moved from
-  // guessing to doing. Scrambled by legal moves only, so it is always solvable;
-  // this one is sixteen moves from home, breadth-first measured.
+  // ── Photograph frame (gates lock 2) ─────────────────────────────────
+  // The museum's night-reel plates, shuffled. The word INSIDE is printed on a
+  // slip pinned under them, so the work is doing, not guessing. Scrambled by
+  // legal moves only, so it is always solvable; this one is sixteen moves from
+  // home, breadth-first measured.
   const SCRAMBLE = ['2','3','.','1','7','4','6','5','8'];
   const SOLVED = '12345678.';
   const FCELL = 62, FGAP = 4, FPAD = 12;
@@ -2001,7 +2019,7 @@
     frameEl.classList.add('solved');
     $('#frameFoot').classList.add('spent');
     $('#frameTask').classList.add('spent');
-    $('#frameTask').textContent = 'The frame is in order, and the slip underneath is free.';
+    $('#frameTask').textContent = 'The plates are in order, and the slip under them is free.';
     setTimeout(() => {
       $('#wordSlip').classList.add('out');
       if (!quiet) { sOpen(); live.textContent = 'A slip came out from under the plates.'; }
@@ -2146,7 +2164,7 @@
     padStage.classList.add('covered');
     $('#circuitFoot').classList.remove('spent');
     $('#circuitTask').classList.remove('spent');
-    $('#circuitTask').textContent = 'The junction box for the desk lamp is screwed inside the drawer, and every length of conduit in it is turned the wrong way. Click a piece to turn it. Feed the live line at the bottom left all the way to the lamp terminal at the top right.';
+    $('#circuitTask').textContent = 'The junction box for the desk lamp, exactly as Kestrel left it \u2014 every length of conduit turned wrong on purpose. Click a piece to turn it. Feed the live line at the bottom left all the way to the lamp terminal at the top right.';
     paintBox();
   }
 
@@ -2159,18 +2177,18 @@
   function pull(which) {
     audio();
     if (which === 2 && stage === 1) {
-      if (!frameDone) return blocked('The sorting frame in drawer one is still out of order, and the slip that names the word is under it.');
+      if (!frameDone) return blocked('The photograph plates in drawer one are still out of order, and the slip that names the word is pinned under them.');
       return bank2.value() === WORD ? unlock(2) : fail(() => {});
     }
     if (which === 3 && stage === 2) {
       // Not a miss: the answer is unreadable, so getting it wrong is not a
       // guess that deserves a hint rung spent on it.
-      if (!tornDone) return blocked('The page in drawer two is still in pieces. Put it back together first.');
+      if (!tornDone) return blocked('The reconstruction in drawer two is still in pieces. Put the page back together first.');
       const ok = flipped.size === WIRED.length && WIRED.every(k => flipped.has(k));
       return ok ? unlock(3) : fail(() => {});
     }
     if (which === 4 && stage === 3) {
-      if (!trayDone) return blocked('The pairings are on the filing slip, and the slip is still jammed in the card tray.');
+      if (!trayDone) return blocked('The pairings are on the canvass slip, and the slip is still jammed in the card tray.');
       const ok = Object.keys(PAIRS).length === Object.keys(wires).length &&
         Object.entries(PAIRS).every(([l, r]) => wires[l] === r);
       return ok ? unlock(4) : fail(() => {});
@@ -2226,8 +2244,8 @@
     if (which < 5) $(LOCKS[which]).classList.add('live'); else $('#lockDone').classList.add('live');
 
     $('#roomId').textContent = which < 5
-      ? `Room ${which + 1} of 5 · Field Office · After Hours`
-      : 'Cabinet open · Field Office · After Hours';
+      ? `Room ${which + 1} of 5 · The Pembroke File · After Hours`
+      : 'Cabinet open · The Pembroke File · After Hours';
     $('#cabCount').textContent = `${which} of 5 unlocked`;
 
     // Show each solved lock in its solved state rather than blank.
@@ -2299,15 +2317,17 @@
       tums.forEach(t => { t.textContent = '—'; t.classList.remove('set'); });
       bank2.reset(); bank5.reset(); flipped.clear(); paintSwitches(); clearPad(); drawWires();
       buildFrame(); buildTorn(); buildTray();
+      $('#frameTask').classList.remove('spent');
+      $('#frameTask').textContent = 'Eight numbered plates from the museum\u2019s night reel, shuffled by somebody in a hurry. A plate only moves if it is next to the empty berth \u2014 click it to slide it across. Put the night back in order, 1 to 8, and the frame releases what is pinned under it.';
       $('#tornTask').classList.remove('spent');
-      $('#tornTask').textContent = 'This one came back torn. Drag the pieces together — each will hold when it is close to where it belongs.';
+      $('#tornTask').textContent = 'Kestrel\u2019s reconstruction of the route \u2014 and it came back to the file torn to pieces. Somebody\u2019s idea of closing a case. Drag the pieces together; each will hold when it is close to where it belongs.';
       $('#trayTask').classList.remove('spent');
-      $('#trayTask').textContent = 'The tray only releases through the slot on the right. Slide the guides out of the way and run the red card out.';
+      $('#trayTask').textContent = 'A card for every fence and pawnshop in the canvass \u2014 and the guides jammed solid around the one that came back marked. The tray only releases through the slot on the right. Slide the guides out of the way and run the red card out.';
       document.querySelectorAll('#torn .red').forEach(r => r.classList.remove('lifted'));
       resetBox();
       Object.values(leftEls).forEach(el => el.classList.remove('wired', 'live'));
       Object.values(rightEls).forEach(el => el.classList.remove('wired', 'live'));
-      $('#roomId').textContent = 'Room 1 of 5 · Field Office · After Hours';
+      $('#roomId').textContent = 'Room 1 of 5 · The Pembroke File · After Hours';
       $('#cabCount').textContent = '0 of 5 unlocked';
       hint.classList.remove('show');
       live.textContent = 'All five locks are closed again.';
