@@ -1218,7 +1218,7 @@
   <p class="hint" id="hint"></p>
 
   <div class="tools">
-    <button class="lnk" id="sound">Sound: off</button>
+    <button class="lnk" id="sound">Sound: on</button>
     <button class="lnk" id="reset">Reset the locks</button>
   </div>
 </div>
@@ -1299,11 +1299,20 @@
   let stage = 0, misses = 0;
 
   // ── Sound ───────────────────────────────────────────────────────────
-  let ctx = null, on = false, master = null;
+  // On by default: the room is half sound. The browser will not let audio
+  // start before a gesture, so the context is built lazily inside the first
+  // interaction and nudged awake on every call after — and a player who turns
+  // it off stays off across visits.
+  const SND = 'pembroke.sound';
+  let ctx = null, master = null;
+  let on = true;
+  try { on = localStorage.getItem(SND) !== '0'; } catch (e) {}
   function audio() {
-    if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain(); master.gain.value = .9; master.connect(ctx.destination);
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value = .9; master.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
   }
   function noise(dur, vol, hz, sweep) {
     if (!on || !ctx) return;
@@ -2605,9 +2614,11 @@
   });
 
   const sBtn = $('#sound');
+  sBtn.textContent = 'Sound: ' + (on ? 'on' : 'off');
   sBtn.addEventListener('click', () => {
     on = !on;
-    if (on) { audio(); if (ctx.state === 'suspended') ctx.resume(); }
+    if (on) audio();
+    try { localStorage.setItem(SND, on ? '1' : '0'); } catch (e) {}
     sBtn.textContent = 'Sound: ' + (on ? 'on' : 'off');
   });
 
