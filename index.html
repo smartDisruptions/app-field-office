@@ -29,6 +29,15 @@
     font-family: var(--legend); min-height: 100vh;
     overflow-x: hidden; position: relative;
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* On a touchscreen the prose is a hazard: a double-tap or long-press beside
+     a control grabs a word, and once the selection UI is up it swallows every
+     touch after it — the room reads as frozen under blue highlight. Documents
+     stay selectable where selecting is deliberate (a mouse); fingers get no
+     selection anywhere, lifted bars included. */
+  @media (pointer: coarse) {
+    body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   }
 
   .pool {
@@ -398,6 +407,11 @@
   .red.lifted {
     background: rgba(201,162,39,.42); color: var(--ink);
     box-shadow: none; font-weight: 700; user-select: auto;
+  }
+  /* After the body-level rule above would let it through: a lifted bar is
+     three taps wide — exactly the double-tap-selection trap fingers fall in. */
+  @media (pointer: coarse) {
+    .red.lifted { -webkit-user-select: none; user-select: none; }
   }
 
   /* ── Locks ────────────────────────────────────────────────────────── */
@@ -1624,18 +1638,35 @@
       w.innerHTML = '<i class="a"></i><i class="b"></i><i class="c"></i>';
       host.appendChild(w); els.push(w);
 
-      let dy = 0, down = false, base = 0;
+      let dy = 0, down = false, base = 0, spun = false;
       w.addEventListener('pointerdown', e => {
         if (stage !== activeStage) return;
-        audio(); down = true; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
+        audio(); down = true; spun = false; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
       });
       w.addEventListener('pointermove', e => {
         if (!down) return;
         const step = Math.round((dy - e.clientY) / 18);
+        if (step) spun = true;
         const next = ((base + step) % alphabet.length + alphabet.length) % alphabet.length;
         if (next !== vals[i]) { vals[i] = next; draw(i); sWheel(); }
       });
-      w.addEventListener('pointerup', () => { down = false; });
+      // A tap brings the letter tapped to the centre — the faded one above or
+      // below, matching what dragging that direction does. Fingers tap wheels
+      // expecting exactly this, and a wheel that answers only to dragging
+      // reads as stuck. Dead-centre taps do nothing rather than guess.
+      w.addEventListener('pointerup', e => {
+        if (down && !spun && stage === activeStage) {
+          const r = w.getBoundingClientRect();
+          const off = e.clientY - r.top;
+          if (off < r.height * .44 || off > r.height * .56) {
+            const L = alphabet.length;
+            vals[i] = ((vals[i] + (off < r.height / 2 ? -1 : 1)) % L + L) % L;
+            draw(i); sWheel();
+          }
+        }
+        down = false;
+      });
+      w.addEventListener('pointercancel', () => { down = false; });
       w.addEventListener('keydown', e => {
         if (stage !== activeStage) return;
         audio();
