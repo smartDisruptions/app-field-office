@@ -1,0 +1,2374 @@
+<title>Field Office — an escape-room résumé</title>
+<style>
+  /* ── Tokens ───────────────────────────────────────────────────────────
+     A field office after hours: one desk lamp, an oak cabinet, brass
+     hardware, manila stock. The room commits to a single lit scene — a
+     light-mode version of "after hours" is a contradiction — so the
+     palette is fixed rather than themed.                                  */
+  :root {
+    --room: #14100d; --room-lo: #0b0907;
+    --oak: #6b4a2a; --oak-hi: #8a6338; --oak-lo: #402a16;
+    --brass: #c9a227; --brass-hi: #f0cf6a; --brass-lo: #7d6317;
+    --manila: #ded3b8; --ink: #2a2318; --ink-dim: #6b5f47;
+    --lamp: #ffd89b; --seal: #8c2f22; --wire: #4f7d6a;
+
+    --legend: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+    --form: Georgia, 'Times New Roman', serif;
+    --typed: ui-monospace, 'Courier New', Courier, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--room-lo); color: var(--manila);
+    font-family: var(--legend); min-height: 100vh;
+    overflow-x: hidden; position: relative;
+  }
+
+  .pool {
+    position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    background:
+      radial-gradient(ellipse 58% 44% at 50% 18%, rgba(255,216,155,.21), transparent 64%),
+      radial-gradient(ellipse 92% 72% at 50% 72%, rgba(255,200,130,.07), transparent 72%);
+    transition: opacity .9s ease, transform .9s ease;
+  }
+  body.lit1 .pool { transform: scale(1.08); }
+  body.lit2 .pool { transform: scale(1.14); }
+  body.lit3 .pool { transform: scale(1.2); opacity: 1.1; }
+  body.lit4 .pool { transform: scale(1.26); opacity: 1.2; }
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 2; opacity: .5;
+    background-image: radial-gradient(rgba(255,255,255,.035) .5px, transparent .5px);
+    background-size: 3px 3px;
+  }
+  canvas.dust { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+
+  /* Read down, then act: memo, then cabinet, then the lock. */
+  .col {
+    position: relative; z-index: 3;
+    width: min(720px, calc(100vw - 40px));
+    margin: 0 auto; padding: 24px 0 64px;
+    display: flex; flex-direction: column; gap: 16px; align-items: center;
+  }
+
+  /* ── Chrome ───────────────────────────────────────────────────────── */
+  /* In the flow, not floating over it. A fixed bar sat on top of the memo at
+     every scroll position, which is the overlap that had to go. */
+  .roomline {
+    align-self: flex-start;
+    font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: rgba(222,211,184,.55);
+  }
+  .tools {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    margin-top: 18px; padding-top: 18px; width: 100%;
+    border-top: 1px solid rgba(222,211,184,.14);
+  }
+  .lnk {
+    font-family: var(--legend); font-size: 10.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--manila);
+    background: rgba(222,211,184,.09); border: 1px solid rgba(222,211,184,.28);
+    border-radius: 3px; padding: 8px 13px; cursor: pointer;
+  }
+  .lnk:hover { background: rgba(222,211,184,.17); }
+  /* Every control you drag, and nothing you read. Spinning the dial used to
+     sweep a text selection across its own numerals, which highlighted the face
+     blue and made the brass look broken. Seated pieces and the filing slip are
+     deliberately left out — those are documents, and documents stay selectable. */
+  .dial, .dial *, .window, .tums, .wheels, .wheel, .switchbank, .board,
+  .tray, .blk, .lever, .setbtn, .minibtn, canvas.pad, #chain, #chain *,
+  .piece:not(.seated) {
+    -webkit-user-select: none; user-select: none;
+  }
+  :focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+  /* ── Intro ────────────────────────────────────────────────────────── */
+  /* Onboarding is diegetic: the first thing you do is turn on the lamp, which
+     teaches that objects here are handled rather than read, and doubles as the
+     gesture browsers require before any audio can play. */
+  /* Text takes the space that is left; the chain is pinned to the bottom and
+     never competes for it. Centring everything in one column let the canvas
+     grow into the copy on short viewports. */
+  /* `space-between` on a fixed-height box pushes content off both ends the
+     moment it does not fit — which is how the heading got clipped by the top
+     of the window and the copy reached the chain. Scroll instead, and let auto
+     margins do the centring only when there is room to spare. */
+  .intro {
+    position: fixed; inset: 0; z-index: 20; background: #070605;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto; overscroll-behavior: contain;
+    gap: 20px; padding: 34px 24px 26px; text-align: center;
+    transition: opacity .9s ease;
+  }
+  .intro.gone { opacity: 0; pointer-events: none; }
+  .introBody {
+    flex: 0 0 auto; margin-top: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  .chain { margin-top: auto; flex: 0 0 auto; }
+  .intro h1 {
+    font-family: var(--legend); font-size: 12px; font-weight: 700;
+    letter-spacing: .42em; text-transform: uppercase; color: var(--brass);
+  }
+  .intro .lines {
+    font-family: var(--typed); font-size: 14.5px; line-height: 2.05;
+    color: var(--manila); max-width: 54ch;
+  }
+  .intro .lines span { display: block; opacity: 0; }
+  .intro .lines span.in { animation: fadeline .7s ease forwards; }
+  .intro .lines em { font-style: normal; color: var(--lamp); }
+  @keyframes fadeline { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  .chain {
+    display: flex; flex-direction: column; align-items: center;
+    opacity: 0; transition: opacity .8s; padding-top: 12px;
+  }
+  .chain.in { opacity: 1; }
+  .chain canvas {
+    display: block; cursor: grab; touch-action: none;
+    border-radius: 4px;
+  }
+  .chain canvas:active { cursor: grabbing; }
+  .chain canvas:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
+  .chain .say {
+    margin-top: 6px; font-family: var(--legend); font-size: 10px;
+    letter-spacing: .22em; text-transform: uppercase; color: rgba(222,211,184,.6);
+    transition: color .3s;
+  }
+  .chain.tug .say { color: var(--lamp); }
+
+  /* ── Memo ─────────────────────────────────────────────────────────── */
+  /* Prose, not a table, and the quantities are spelled out. Two of the three
+     combination figures never appear as digits anywhere on the page, so the
+     only way to them is to actually read the sentences. */
+  .memo {
+    width: 100%; color: var(--ink); border-radius: 2px;
+    padding: 17px 22px 15px; transform: rotate(-.7deg); position: relative;
+    box-shadow: 0 16px 36px rgba(0,0,0,.6), 0 2px 0 rgba(255,255,255,.25) inset;
+    background-color: var(--manila);
+    background-image:
+      repeating-linear-gradient(180deg, transparent 0 24px, rgba(42,35,24,.07) 24px 25px),
+      linear-gradient(#ece3cc, var(--manila));
+  }
+  .memo h2 {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--ink-dim); border-bottom: 1px solid rgba(42,35,24,.3); padding-bottom: 7px;
+  }
+  .memo .to { font-family: var(--typed); font-size: 10.5px; color: var(--ink-dim);
+    margin-top: 8px; display: flex; gap: 22px; flex-wrap: wrap; }
+  .memo p { font-family: var(--typed); font-size: 12.5px; line-height: 1.75; margin-top: 11px; }
+  .memo p:first-of-type { padding-right: 124px; }
+  .memo b { font-weight: 700; }
+  /* The dial has forty notches, so a four-digit year cannot go in whole. Only
+     the half the lock can take is set bold — the century stays at normal
+     weight beside it. It was seal-red once, which read as a correction mark
+     rather than emphasis. */
+  .yr { font-weight: 400; }
+  .stamp {
+    position: absolute; right: 16px; top: 50px;
+    border: 2.5px solid var(--seal); color: var(--seal); font-size: 9.5px; font-weight: 700;
+    letter-spacing: .16em; padding: 4px 8px; transform: rotate(8deg); opacity: .72; border-radius: 2px;
+  }
+
+  /* ── Cabinet ──────────────────────────────────────────────────────── */
+  .cabinet {
+    width: 100%; perspective: 1100px;
+    background: linear-gradient(100deg, var(--oak-lo), var(--oak) 45%, #55381d);
+    border: 1px solid #241505; border-top-color: var(--oak-hi);
+    border-radius: 4px; padding: 14px;
+    box-shadow: 0 30px 66px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  .cab-top { display: flex; justify-content: space-between; font-size: 8.5px;
+    letter-spacing: .2em; text-transform: uppercase; color: rgba(222,211,184,.5); margin-bottom: 10px; }
+
+  .slot { position: relative; margin-bottom: 6px; transform-style: preserve-3d; }
+  /* Collapsed by max-height, not opacity: a hidden folder still occupies its
+     box, which would make a sealed drawer as tall as its contents and give
+     away which one is in play. */
+  .interior {
+    background: linear-gradient(#171009, #241708);
+    border: 1px solid #120b04; border-radius: 3px; padding: 13px;
+    max-height: 54px; overflow: hidden;
+    box-shadow: inset 0 12px 30px rgba(0,0,0,.9);
+    transition: max-height .8s cubic-bezier(.22,1,.28,1);
+  }
+  /* Per-drawer, because the two puzzle drawers are several times the height of
+     a plain sheet and one shared ceiling would clip them shut. */
+  .slot.opened .interior { max-height: var(--openh, 520px); }
+
+  .drawer {
+    position: absolute; inset: 0; z-index: 4;
+    background: linear-gradient(170deg, var(--oak-hi), var(--oak) 40%, var(--oak-lo));
+    border: 1px solid #241505; border-radius: 3px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.14);
+    transform-origin: 50% 100%;
+    transition: transform .95s cubic-bezier(.22,1,.28,1), opacity .6s .35s;
+    display: flex; align-items: center; justify-content: center; gap: 13px;
+  }
+  .slot.opened .drawer { transform: translateY(24px) rotateX(78deg); opacity: 0; pointer-events: none; }
+  .slot.armed .drawer { box-shadow: 0 8px 20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 2px rgba(255,216,155,.5); }
+
+  .plate {
+    background: linear-gradient(#d9cba8, #b3a481); border: 1px solid #4a3a1c;
+    border-radius: 2px; padding: 4px 11px; font-size: 8.5px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase; color: #2a2318;
+    box-shadow: 0 2px 4px rgba(0,0,0,.5);
+  }
+  .pull {
+    width: 74px; height: 11px; border-radius: 3px;
+    background: linear-gradient(var(--brass-hi), var(--brass) 45%, var(--brass-lo));
+    border: 1px solid #4a3a0d; box-shadow: 0 3px 6px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+
+  /* ── Sheets ───────────────────────────────────────────────────────── */
+  .folder { opacity: 0; transform: translateY(12px); transition: opacity .6s .45s, transform .7s .45s; }
+  .slot.opened .folder { opacity: 1; transform: none; }
+  .tab { display: inline-block; background: var(--manila); color: var(--ink); font-size: 8.5px;
+    font-weight: 700; letter-spacing: .17em; text-transform: uppercase; padding: 4px 10px;
+    border-radius: 3px 3px 0 0; }
+  .sheet { background: linear-gradient(#ece3cc, var(--manila)); color: var(--ink);
+    border-radius: 0 3px 3px 3px; padding: 13px 15px 14px; box-shadow: 0 10px 26px rgba(0,0,0,.55); }
+  .sheet h3 { font-family: var(--form); font-size: 17px; line-height: 1.2; }
+  .sheet .org { font-family: var(--typed); font-size: 10.5px; color: var(--ink-dim); margin-top: 3px; }
+  .sheet p { font-size: 12.5px; line-height: 1.62; margin-top: 9px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .chip { font-family: var(--typed); font-size: 9.5px; letter-spacing: .04em;
+    border: 1px solid rgba(42,35,24,.4); border-radius: 2px; padding: 3px 6px; color: var(--ink-dim); }
+  .sheet .next { margin-top: 10px; border-top: 1px dashed rgba(42,35,24,.4); padding-top: 9px;
+    font-family: var(--typed); font-size: 11px; color: var(--ink-dim); line-height: 1.6; }
+  .sheet .next b { color: var(--seal); }
+
+  /* The instruction that sits above a physical task inside a drawer. */
+  .task {
+    font-family: var(--typed); font-size: 11px; line-height: 1.6;
+    color: rgba(222,211,184,.72); text-align: center;
+    max-width: 46ch; margin: 0 auto 12px;
+  }
+  .task.spent { opacity: .34; }
+
+  /* ── Torn page ──────────────────────────────────────────────────────
+     Fixed intrinsic geometry, scaled to whatever width the drawer gives it, so
+     every coordinate in the drag maths stays in one unscaled space. */
+  .tornwrap { overflow: hidden; margin: 0 auto; }
+  .torn { position: relative; transform-origin: top left; }
+  .outline {
+    position: absolute; border: 1px dashed rgba(222,211,184,.26);
+    border-radius: 2px; background: rgba(0,0,0,.16);
+    transition: opacity .7s;
+  }
+  .outline.gone { opacity: 0; }
+  .piece {
+    position: absolute; cursor: grab; overflow: hidden; touch-action: none;
+    filter: drop-shadow(0 5px 7px rgba(0,0,0,.6));
+    transition: filter .2s;
+  }
+  .piece:active { cursor: grabbing; }
+  /* A placed piece stops being an object and goes back to being paper. Leaving
+     touch-action off it would mean the finished page — twelve pieces wide and
+     tall — swallowed every scroll that started on top of it. */
+  .piece.seated { cursor: default; filter: none; touch-action: auto; }
+  .piece.settling { transition: left .18s ease-out, top .18s ease-out; }
+  .piece:focus-visible { outline: 2px solid var(--lamp); outline-offset: 1px; }
+  /* Each piece carries a whole copy of the page, pushed so that only its own
+     fragment falls inside the clip. */
+  .pagefull {
+    position: absolute; margin: 0;
+    box-shadow: none; border-radius: 0;
+  }
+  .torn.whole .piece { filter: none; }
+
+  /* ── Card tray ──────────────────────────────────────────────────────── */
+  .traywrap { display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
+  /* flex-shrink must be off: the blocks are positioned in unscaled grid pixels,
+     so letting the flex layout squeeze the board would slide every guide out of
+     its own tray. Narrow screens are handled by the scale in fitTray, and the
+     wrapper's overflow keeps the page from growing sideways. */
+  .tray { transform-origin: top center; flex: 0 0 auto; }
+  .tray {
+    position: relative; border-radius: 4px;
+    background:
+      linear-gradient(rgba(0,0,0,.24), rgba(0,0,0,.24)),
+      repeating-linear-gradient(90deg, #3a2b16 0 1px, transparent 1px 100%),
+      repeating-linear-gradient(0deg, #3a2b16 0 1px, transparent 1px 100%),
+      linear-gradient(#241a0c, #171107);
+    box-shadow: inset 0 2px 10px rgba(0,0,0,.8), 0 8px 22px rgba(0,0,0,.55);
+  }
+  .slotgap {
+    position: absolute; background: linear-gradient(90deg, rgba(0,0,0,.7), rgba(255,216,155,.22));
+    box-shadow: inset 0 0 8px rgba(0,0,0,.8);
+  }
+  .blk {
+    position: absolute; border-radius: 3px; cursor: grab; touch-action: none;
+    background: linear-gradient(#e0c063, #9c7c2a);
+    border: 1px solid #4a3a12;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 3px 7px rgba(0,0,0,.55);
+  }
+  .blk:active { cursor: grabbing; }
+  .blk:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
+  .blk.key {
+    background: linear-gradient(#d1583c, #8f3320);
+    border-color: #43140c;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 3px 9px rgba(0,0,0,.6);
+  }
+  .blk.settle { transition: left .16s ease-out, top .16s ease-out; }
+  .blk.out { transition: left .75s cubic-bezier(.4,0,.5,1), opacity .4s .45s; opacity: 0; }
+  /* Ribbed like a filing guide, so the pieces read as tray hardware. */
+  .blk::after {
+    content: ''; position: absolute; inset: 4px; border-radius: 2px;
+    background: repeating-linear-gradient(135deg, rgba(0,0,0,.14) 0 3px, transparent 3px 7px);
+  }
+
+  .trayfoot {
+    display: flex; gap: 12px; align-items: center; justify-content: center;
+    margin-top: 11px; font-family: var(--typed); font-size: 10.5px;
+    color: rgba(222,211,184,.5);
+  }
+  .trayfoot.spent { display: none; }
+  .minibtn {
+    font-family: var(--legend); font-size: 9px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--manila);
+    background: rgba(222,211,184,.08); border: 1px solid rgba(222,211,184,.24);
+    border-radius: 3px; padding: 5px 10px; cursor: pointer;
+  }
+  .minibtn:hover { background: rgba(222,211,184,.16); }
+
+  .slip {
+    max-width: 46ch; margin: 14px auto 0; padding: 11px 14px;
+    background: linear-gradient(#efe6cd, #d8cbaa); color: var(--ink);
+    font-size: 12.5px; line-height: 1.6; border-radius: 2px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.6);
+    opacity: 0; transform: translateY(-26px) rotate(-1.4deg); pointer-events: none;
+  }
+  .slip.out {
+    opacity: 1; transform: translateY(0) rotate(-1.4deg); pointer-events: auto;
+    transition: opacity .5s .1s, transform .8s cubic-bezier(.22,1,.28,1) .1s;
+  }
+  .slipHead {
+    display: block; font-family: var(--typed); font-size: 9.5px;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--seal); margin-bottom: 5px;
+  }
+
+  /* The bar you are trying to lift. The word stays in the markup so a screen
+     reader can still read it — the alternative locks those visitors out of the
+     puzzle entirely, and anyone determined can read the source anyway. */
+  .red {
+    background: #1a1611; color: transparent; border-radius: 1px; padding: 1px 4px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.25); user-select: none;
+    transition: background .5s, color .5s, box-shadow .5s;
+  }
+  .red.lifted {
+    background: rgba(201,162,39,.42); color: var(--ink);
+    box-shadow: none; font-weight: 700; user-select: auto;
+  }
+
+  /* ── Locks ────────────────────────────────────────────────────────── */
+  .lock { display: none; flex-direction: column; align-items: center; gap: 11px; width: 100%; }
+  .lock.live { display: flex; }
+
+  .window {
+    display: flex; align-items: center; justify-content: center;
+    width: 92px; padding: 5px 0 6px; border-radius: 4px;
+    background: linear-gradient(#1a1611, #100d09);
+    border: 2px solid var(--brass-lo); border-top-color: var(--brass);
+    box-shadow: inset 0 3px 10px rgba(0,0,0,.9), 0 3px 8px rgba(0,0,0,.5);
+  }
+  .window span {
+    font-family: var(--typed); font-size: 30px; font-weight: 700; line-height: 1;
+    color: var(--lamp); font-variant-numeric: tabular-nums; letter-spacing: .06em;
+    text-shadow: 0 0 14px rgba(255,216,155,.6);
+  }
+
+  .dial {
+    width: 152px; height: 152px; border-radius: 50%; position: relative;
+    background:
+      radial-gradient(circle at 50% 50%, #2b2411 0 26%, transparent 27%),
+      radial-gradient(circle at 38% 28%, var(--brass-hi), var(--brass) 42%, var(--brass-lo) 78%, #4d3c0c);
+    border: 3px solid #34280a;
+    box-shadow: 0 10px 22px rgba(0,0,0,.7), inset 0 2px 4px rgba(255,255,255,.35);
+    cursor: grab; touch-action: none;
+  }
+  .dial:active { cursor: grabbing; }
+  .face { position: absolute; inset: 0; border-radius: 50%; }
+  .tick { position: absolute; left: 50%; top: 4px; width: 1px; height: 7px;
+    background: rgba(40,30,6,.75); transform-origin: 50% 72px; margin-left: -.5px; }
+  .tick.major { height: 11px; width: 2px; background: #241a04; margin-left: -1px; }
+  .num { position: absolute; left: 50%; top: 16px; font-family: var(--typed); font-size: 10px;
+    font-weight: 700; color: #2b2109; transform-origin: 50% 60px; margin-left: -7px;
+    width: 14px; text-align: center; }
+  .num.hot { color: #fff6e2; font-size: 13px;
+    text-shadow: 0 0 8px rgba(255,216,155,.95), 0 0 2px rgba(0,0,0,.6); }
+  .hub { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+    border-radius: 50%; background: radial-gradient(circle at 40% 35%, #6b5a1f, #241a04);
+    border: 1px solid #120c02; box-shadow: inset 0 1px 2px rgba(255,255,255,.25); }
+  .fid { position: absolute; left: 50%; top: -12px; margin-left: -6px; width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-top: 10px solid var(--manila); filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); }
+
+  .tums { display: flex; gap: 8px; }
+  .setbtn {
+    font-family: var(--legend); font-size: 10px; letter-spacing: .16em;
+    text-transform: uppercase; color: #2a2308;
+    background: linear-gradient(var(--brass-hi), var(--brass) 48%, var(--brass-lo));
+    border: 1px solid #4a3a0d; border-radius: 3px; padding: 9px 18px; cursor: pointer;
+    box-shadow: 0 3px 7px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .setbtn:hover { filter: brightness(1.08); }
+  .setbtn:active { transform: translateY(1px); }
+  .setbtn b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tum { width: 46px; height: 34px; border-radius: 3px; background: linear-gradient(#1d1508, #120c04);
+    border: 1px solid #0a0602; box-shadow: inset 0 3px 8px rgba(0,0,0,.9);
+    display: flex; align-items: center; justify-content: center; font-family: var(--typed);
+    font-size: 16px; font-weight: 700; color: var(--brass-hi); font-variant-numeric: tabular-nums;
+    transition: background .18s, color .18s; }
+  .tum.set { background: linear-gradient(#3a2c0b, #241a05); color: var(--lamp); }
+
+  /* One wheel component serves letters and digits — a second implementation
+     would be a second set of bugs for no visible gain. */
+  .wheels { display: flex; gap: 6px; }
+  .wheel {
+    width: 50px; height: 74px; border-radius: 4px; position: relative; overflow: hidden;
+    background: linear-gradient(90deg, #6b5417, var(--brass-hi) 26%, var(--brass) 50%, var(--brass-lo) 82%, #4d3c0c);
+    border: 1px solid #34280a; box-shadow: 0 6px 14px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.4);
+    cursor: ns-resize; touch-action: none;
+  }
+  .wheel i { position: absolute; left: 0; right: 0; text-align: center; font-family: var(--typed);
+    font-weight: 700; color: #2b2109; font-style: normal; }
+  .wheel .a { top: 6px; opacity: .34; font-size: 14px; }
+  .wheel .b { top: 26px; font-size: 20px; }
+  .wheel .c { bottom: 6px; opacity: .34; font-size: 14px; }
+  .wheel::after { content: ''; position: absolute; left: 0; right: 0; top: 23px; height: 28px;
+    border-top: 1px solid rgba(40,30,6,.5); border-bottom: 1px solid rgba(40,30,6,.5); pointer-events: none; }
+  /* Switch bank — "what is it wired into" is a set, so the lock is a set of
+     physical toggles rather than a value to be typed in. */
+  .switchbank {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+    width: 100%; max-width: 460px;
+    background: linear-gradient(#241a10, #17110a);
+    border: 1px solid #120b04; border-radius: 4px; padding: 14px;
+    box-shadow: inset 0 6px 20px rgba(0,0,0,.8);
+  }
+  .sw {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(222,211,184,.05); border: 1px solid rgba(222,211,184,.18);
+    border-radius: 3px; padding: 7px 9px; cursor: pointer; text-align: left;
+    font-family: var(--typed); font-size: 11px; color: rgba(222,211,184,.72);
+  }
+  .sw:hover { background: rgba(222,211,184,.11); }
+  .sw.on { border-color: var(--brass); color: var(--lamp); background: rgba(201,162,39,.12); }
+  .swb {
+    width: 17px; height: 27px; border-radius: 3px; flex: 0 0 auto; position: relative;
+    background: linear-gradient(#14100b, #0a0806); border: 1px solid #000;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.9);
+  }
+  .swb i {
+    position: absolute; left: 2px; right: 2px; height: 11px; top: 12px; border-radius: 2px;
+    background: linear-gradient(var(--brass-hi), var(--brass-lo));
+    box-shadow: 0 1px 2px rgba(0,0,0,.6);
+    transition: top .13s cubic-bezier(.3, 1.5, .5, 1);
+  }
+  .sw.on .swb i { top: 2px; }
+  @media (max-width: 520px) { .switchbank { grid-template-columns: 1fr; } }
+
+  /* Wire board — the second brain is a set of links, so its lock is too. */
+  .board {
+    position: relative; width: 100%; max-width: 460px;
+    background: linear-gradient(#241a10, #17110a);
+    border: 1px solid #120b04; border-radius: 4px; padding: 15px 17px;
+    box-shadow: inset 0 6px 20px rgba(0,0,0,.8);
+  }
+  .board svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  .rows { display: grid; grid-template-columns: 1fr auto 1fr; gap: 9px 18px; align-items: center; }
+  .term {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--typed); font-size: 11px; color: var(--manila);
+    background: rgba(222,211,184,.05); border: 1px solid rgba(222,211,184,.2);
+    border-radius: 3px; padding: 7px 9px; cursor: pointer; text-align: left;
+  }
+  .term.right { flex-direction: row-reverse; text-align: right; }
+  .term:hover { background: rgba(222,211,184,.12); }
+  .term.live { border-color: var(--lamp); box-shadow: 0 0 0 1px var(--lamp); }
+  .term.wired { border-color: var(--wire); color: #cfe6da; }
+  .jackdot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto;
+    background: radial-gradient(circle at 50% 40%, #0a0c07 0 42%, #6b5a1f 44%, #241a04 100%); }
+  .board .mid { font-family: var(--typed); font-size: 9px; color: rgba(222,211,184,.3); text-align: center; }
+
+  /* ── Sorting frame ──────────────────────────────────────────────────
+     Absolutely positioned rather than gridded, so a plate slides to its new
+     berth instead of teleporting when the board re-renders. */
+  .framewrap { display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
+  .frame {
+    position: relative; width: 218px; height: 218px; border-radius: 4px;
+    transform-origin: top center; flex: 0 0 auto;
+    background: linear-gradient(#241a0c, #171107); border: 1px solid #120b04;
+    box-shadow: inset 0 2px 12px rgba(0,0,0,.85), 0 8px 22px rgba(0,0,0,.55);
+  }
+  .slug {
+    position: absolute; width: 62px; height: 62px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--typed); font-size: 21px; font-weight: 700; color: #2a2308;
+    background: linear-gradient(#e0c063, #9c7c2a); border: 1px solid #4a3a12;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 3px 7px rgba(0,0,0,.55);
+    cursor: pointer; touch-action: manipulation;
+    transition: left .16s cubic-bezier(.3,1.3,.5,1), top .16s cubic-bezier(.3,1.3,.5,1);
+  }
+  .slug:hover { filter: brightness(1.07); }
+  .slug:focus-visible { outline: 2px solid var(--lamp); outline-offset: -3px; }
+  .frame.solved .slug {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 0 11px rgba(255,216,155,.5);
+  }
+  .framefoot {
+    display: flex; gap: 12px; align-items: center; justify-content: center;
+    margin-top: 11px; font-family: var(--typed); font-size: 10.5px;
+    color: rgba(222,211,184,.5);
+  }
+  .framefoot.spent { display: none; }
+
+  /* ── Junction box ───────────────────────────────────────────────────
+     A grid of conduit pieces, each turned in place. Live sections glow, so the
+     current is visible creeping along the route you build rather than a verdict
+     delivered only at the end. */
+  .boxwrap {
+    /* align-items must not be stretch: fitBox sets this wrapper's height, and a
+       stretched flex child inherits it, which crushed the grid rows to 46px. */
+    display: flex; justify-content: center; align-items: flex-start; overflow: hidden;
+  }
+  .jbox {
+    position: relative; display: grid; gap: 3px; padding: 13px;
+    grid-template-columns: repeat(5, 62px); grid-auto-rows: 62px;
+    /* flex:0 0 auto for the same reason the card tray needs it — the tiles are
+       laid out in fixed pixels, so letting the flex row squeeze the box would
+       shear the grid off its own conduit. Narrow screens scale it instead. */
+    border-radius: 4px; transform-origin: top center; flex: 0 0 auto;
+    background: linear-gradient(#241a0c, #171107);
+    border: 1px solid #120b04;
+    box-shadow: inset 0 2px 12px rgba(0,0,0,.85), 0 8px 22px rgba(0,0,0,.55);
+  }
+  .feed, .lampterm {
+    position: absolute; font-family: var(--legend); font-size: 7.5px;
+    letter-spacing: .14em; text-transform: uppercase; padding: 3px 5px;
+    border-radius: 2px; background: rgba(0,0,0,.55); color: rgba(222,211,184,.6);
+  }
+  .feed { left: -4px; bottom: 26px; }
+  .lampterm { right: -4px; top: 26px; }
+  .jbox.on .lampterm { color: #2a2308; background: var(--lamp); }
+
+  .tile {
+    position: relative; border-radius: 2px; background: rgba(255,255,255,.018);
+    cursor: pointer; touch-action: manipulation;
+  }
+  .tile.blank { cursor: default; background: none; }
+  .tile:not(.blank):hover { background: rgba(255,216,155,.07); }
+  .tile:focus-visible { outline: 2px solid var(--lamp); outline-offset: -2px; }
+  /* The turn is the whole verb, so it gets a real easing rather than a snap. */
+  .spin { position: absolute; inset: 0; transition: transform .22s cubic-bezier(.3,1.4,.5,1); }
+  .arm {
+    position: absolute; background: #6a5526; border-radius: 1px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);
+  }
+  .arm.n { left: 50%; top: 0; width: 9px; height: 52%; margin-left: -4.5px; }
+  .arm.s { left: 50%; bottom: 0; width: 9px; height: 52%; margin-left: -4.5px; }
+  .arm.e { right: 0; top: 50%; height: 9px; width: 52%; margin-top: -4.5px; }
+  .arm.w { left: 0; top: 50%; height: 9px; width: 52%; margin-top: -4.5px; }
+  .core {
+    position: absolute; left: 50%; top: 50%; width: 15px; height: 15px;
+    margin: -7.5px 0 0 -7.5px; border-radius: 50%; background: #6a5526;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);
+  }
+  .tile.live .arm, .tile.live .core {
+    background: linear-gradient(var(--brass-hi), var(--brass));
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 9px rgba(255,216,155,.5);
+  }
+  .boxfoot {
+    display: flex; justify-content: center; margin-top: 11px;
+    font-family: var(--typed); font-size: 10.5px; color: rgba(222,211,184,.5);
+  }
+  .boxfoot.spent { display: none; }
+
+  .blotter {
+    font-family: var(--typed); font-size: 11px; line-height: 1.6;
+    color: rgba(222,211,184,.44); text-align: center; max-width: 42ch;
+    margin: 0 auto; padding: 26px 16px; border: 1px dashed rgba(222,211,184,.2);
+    border-radius: 3px;
+  }
+  .padstage.covered .padwrap { display: none; }
+  .padstage:not(.covered) .blotter { display: none; }
+
+  /* The notepad. Every other lock asks you to find something already printed;
+     this one hides the answer off the page entirely until you work the object.
+     Rubbing graphite across the sheet darkens everything except the grooves the
+     pen pressed through, so the word comes up light out of the shading. */
+  .padwrap { position: relative; width: 100%; max-width: 460px; }
+  canvas.pad {
+    display: block; width: 100%; height: auto; border-radius: 3px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.6);
+    cursor: crosshair; touch-action: none;
+  }
+  canvas.pad:focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
+  .padhint {
+    font-family: var(--typed); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(222,211,184,.4);
+    text-align: center; margin-top: 7px;
+  }
+
+  .lever {
+    margin-top: 3px; background: linear-gradient(var(--brass-hi), var(--brass) 45%, var(--brass-lo));
+    border: 1px solid #4a3a0d; border-radius: 3px; color: #241a04;
+    font-family: var(--legend); font-size: 10.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; padding: 10px 26px; cursor: pointer;
+    box-shadow: 0 3px 0 #4a3a0d, inset 0 1px 0 rgba(255,255,255,.5);
+    transition: transform .05s, box-shadow .05s;
+  }
+  .lever:active { transform: translateY(3px); box-shadow: 0 0 0 #4a3a0d, inset 0 1px 0 rgba(255,255,255,.4); }
+
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+    40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)}
+  }
+  body.bad .lock.live { animation: shake .42s; }
+  body.bad .tum { background: linear-gradient(#4a1810, #2a0d07); color: #f0a08e; }
+
+  .note { font-family: var(--typed); font-size: 11px; color: rgba(222,211,184,.62);
+    text-align: center; line-height: 1.65; max-width: 520px; }
+  .note b { color: var(--lamp); }
+  .hint { font-family: var(--typed); font-size: 11.5px; color: var(--lamp);
+    text-align: center; max-width: 560px; line-height: 1.6; min-height: 32px;
+    opacity: 0; transition: opacity .4s; }
+  .hint.show { opacity: .95; }
+
+  @media (max-width: 640px) {
+    .col { padding: 62px 0 60px; }
+    .wheel { width: 40px; height: 64px; }
+    .wheel .b { font-size: 16px; top: 23px; }
+    .rows { grid-template-columns: 1fr; }
+    .board .mid { display: none; }
+    .term.right { flex-direction: row; text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition-duration: .001ms !important; }
+    .intro .lines span { opacity: 1; }
+    .chain { opacity: 1; }
+  }
+</style>
+
+<div class="pool"></div>
+<canvas class="dust" id="dust"></canvas>
+<div class="grain"></div>
+
+<div class="intro" id="intro">
+  <div class="introBody">
+    <h1>Field Office · After Hours</h1>
+    <div class="lines" id="lines">
+      <span>The building emptied out an hour ago.</span>
+      <span>There is one cabinet by the window, and it is locked.</span>
+      <span>The man whose file is inside has gone home for the night.</span>
+      <span>&nbsp;</span>
+      <span>Everything you need is written down somewhere in this room.</span>
+      <span><em>Nothing is hidden. Nothing is a trick.</em></span>
+      <span>The locks only ask for what the papers already say.</span>
+    </div>
+  </div>
+  <div class="chain" id="chain">
+    <canvas id="chainCv" width="120" height="196" tabindex="0" role="button"
+            aria-label="Lamp chain. Drag it down and let go to turn on the light. Or press Enter."></canvas>
+    <span class="say" id="chainSay">Grab the chain and pull</span>
+  </div>
+</div>
+
+<div class="col">
+  <p class="roomline" id="roomId">Room 1 of 5 · Field Office · After Hours</p>
+  <div class="memo">
+    <h2>Interoffice Memorandum</h2>
+    <span class="stamp">SEALED</span>
+    <div class="to"><span>TO: FILE</span><span>RE: ESCUSA, J.</span><span>MOSCOW, IDAHO</span></div>
+    <!-- The dial only has forty notches, so a four-digit year cannot go in
+         whole. Setting the last two apart is the memo showing which half of
+         itself the lock can actually take. -->
+    <p>Enterprise Developer since <span class="yr">20<b>24</b></span> — financial aid systems at a
+      public university, written in Oracle SQL and Pro*C against Banner. Rebuilt
+      the Net Price Calculator in-house and retired the vendor licence it
+      replaced.</p>
+    <p><b>Three</b> years of building alongside a model, daily, on real work
+      rather than demos. <b>Thirty-four</b> projects now sit in one folder:
+      client sites, internal tools, a SaaS, games built with his son.</p>
+    <p>What is filed here is not a job history. It is how the work gets done —
+      and the method is the part that transfers.</p>
+  </div>
+
+  <div class="cabinet">
+    <div class="cab-top"><span>Cabinet 1</span><span id="cabCount">0 of 5 unlocked</span></div>
+
+    <div class="slot armed" id="slot1" style="--openh:1150px">
+      <div class="interior"><div class="folder">
+        <span class="tab">Drawer 1 — Where it started</span>
+        <div class="sheet">
+          <h3>Working with a model, daily</h3>
+          <div class="org">2023 – present · three years, real work only</div>
+          <p>Not demos. Client sites, internal tools, a review system that runs
+            itself. The honest description is not that a model writes the code —
+            it is that decent logic gets amplified by something that never tires
+            of the boring half. The tool changed twice in three years; the
+            <span class="red" id="red1">method</span> did not.</p>
+          <div class="chips"><span class="chip">Daily practice</span><span class="chip">Shipped, not demoed</span><span class="chip">Self-taught</span></div>
+          <div class="next">Taped inside the drawer:<br>
+            <b>Drawer 2</b> — one word, six letters. The sorting frame under
+            this sheet holds the slip that names it. The frame is out of order,
+            and it will not give the slip up until it is put right.</div>
+        </div>
+
+        <p class="task" id="frameTask">A sorting frame, eight numbered plates and
+          one empty berth. A plate only moves if it is next to the gap — click it
+          to slide it across. Put them back in order, 1 to 8, and the frame
+          releases what is under them.</p>
+        <div class="framewrap">
+          <div class="frame" id="frame"></div>
+        </div>
+        <div class="framefoot" id="frameFoot">
+          <span id="frameMoves">0 moves</span>
+          <button type="button" class="minibtn" id="frameReset">Shuffle again</button>
+        </div>
+        <!-- Not in the DOM as readable text until the frame is solved: the word
+             is the whole point of drawer one, and a slip you could read early
+             would make the frame decoration. -->
+        <div class="slip" id="wordSlip" aria-live="polite">
+          <span class="slipHead">Slip · clipped under the plates</span>
+          The letter lock on drawer two takes the word struck out on this sheet:
+          <b>METHOD</b>. Six letters. It is the only thing in here that transfers.
+        </div>
+      </div></div>
+      <div class="drawer"><span class="plate">Drawer 1 — Sealed</span><span class="pull"></span></div>
+    </div>
+
+    <div class="slot" id="slot2" style="--openh:1250px">
+      <div class="interior"><div class="folder">
+        <span class="tab">Drawer 2 — Agents and connections</span>
+        <p class="task" id="tornTask">This one came back torn. Drag the pieces
+          together — each will hold when it is close to where it belongs.</p>
+        <!-- The sheet is not in the DOM as a sheet: it is cloned twelve times,
+             once per piece, each copy shifted and clipped so only its own
+             fragment shows. Assembling the pieces is literally assembling the
+             document. -->
+        <div class="tornwrap"><div class="torn" id="torn">
+          <div class="outline" id="tornOutline"></div>
+        </div></div>
+        <template id="page2">
+          <div class="sheet pagefull">
+            <h3>Agentic development, wired to the work</h3>
+            <div class="org">Claude Code · Model Context Protocol · custom skills</div>
+            <p>The agent stopped being a chat window beside the editor and
+              became the editor. MCP servers wire it into the design file, the
+              database, the repo and the deploy — four places the work actually
+              lives — so context is no longer something you
+              <span class="red">paste</span>.</p>
+            <p>Custom skills encode how a job should be done once, and every
+              session after that does it the same way, without being told
+              again.</p>
+            <div class="chips"><span class="chip">Claude Code</span><span class="chip">MCP servers</span><span class="chip">Custom skills</span></div>
+            <div class="next">Taped inside the drawer:<br>
+              <b>Drawer 3</b> — the patch panel. Flip on the four places this
+              sheet says the agent is wired into, and nothing else.</div>
+          </div>
+        </template>
+      </div></div>
+      <div class="drawer"><span class="plate">Drawer 2 — Sealed</span><span class="pull"></span></div>
+    </div>
+
+    <div class="slot" id="slot3" style="--openh:1150px">
+      <div class="interior"><div class="folder">
+        <span class="tab">Drawer 3 — Automations</span>
+        <div class="sheet">
+          <h3>What runs when nobody is watching</h3>
+          <div class="org">Scheduled agents · cron routines · unattended publishing</div>
+          <p>A scheduler that opens and merges its own pull request is a
+            different thing from a script. It decides, and it does it while the
+            building is empty. The review system carries four of these on a
+            timer; the writing pipeline carries its own, and one of them shipped
+            an article with nobody
+            <span class="red" id="red3">watching</span>.</p>
+          <p>Every one of them files what it produces, and the filing slip for
+            this drawer is still in the card tray underneath — behind a rank of
+            guides that has jammed solid.</p>
+          <div class="chips"><span class="chip">Scheduled agents</span><span class="chip">Cron</span><span class="chip">Self-merging PRs</span></div>
+          <div class="next">Taped inside the drawer:<br>
+            <b>Drawer 4</b> — the wire board. It wants the pairings on that
+            filing slip, so the slip has to come out first.</div>
+        </div>
+
+        <p class="task" id="trayTask">The tray only releases through the slot on
+          the right. Slide the guides out of the way and run the red card
+          out.</p>
+        <div class="traywrap"><div class="tray" id="tray">
+          <div class="slotgap"></div>
+        </div></div>
+        <!-- A forty-two-move board needs its own restart: the global reset
+             would cost the player every lock they have already opened. -->
+        <div class="trayfoot" id="trayFoot">
+          <span id="trayMoves">0 moves</span>
+          <button type="button" class="minibtn" id="trayReset">Re-jam the tray</button>
+        </div>
+        <!-- The slip is the payload: it does not exist on the page until the
+             card clears the tray, so the pairings cannot be read early. -->
+        <div class="slip" id="slip" aria-live="polite">
+          <span class="slipHead">Filing slip · routines</span>
+          Decisions go to the vault. Steps go to the journal. Tasks go to the
+          board. Nothing is left for a human to sort afterwards.
+        </div>
+      </div></div>
+      <div class="drawer"><span class="plate">Drawer 3 — Sealed</span><span class="pull"></span></div>
+    </div>
+
+    <div class="slot" id="slot4" style="--openh:1150px">
+      <div class="interior"><div class="folder">
+        <span class="tab">Drawer 4 — The second brain</span>
+        <div class="sheet">
+          <h3>A wiki the agents read and write</h3>
+          <div class="org">Obsidian vault · one entry point · every note self-describing</div>
+          <p>A model with no memory re-earns your context every session. So the
+            context moved out of the chat and into a vault: one index page, every
+            note carrying its own description, any fact two hops from home. It
+            survived a fortnight of real use with no manual
+            <span class="red" id="red4">cleanup</span> — and twice it caught its
+            own recorded beliefs being wrong and corrected them mid-session.</p>
+          <p>It holds the pipeline as well as the facts, in the order the work
+            runs: spec, then plan, then QA, then ship. A fresh session picks that
+            up and runs it the way I would.</p>
+          <div class="chips"><span class="chip">Obsidian</span><span class="chip">Loaded every session</span><span class="chip">Self-correcting</span></div>
+          <div class="next">Taped inside the drawer:<br>
+            <b>Drawer 5</b> — nothing in this cabinet names it. I tore the top
+            sheet off the desk pad and took it home; the pad is still under the
+            blotter. You will not see a thing down there until the desk lamp is
+            back — I had the junction box open and left the conduit in pieces.</div>
+        </div>
+
+        <p class="task" id="circuitTask">The junction box for the desk lamp is
+          screwed inside the drawer, and every length of conduit in it is turned
+          the wrong way. Click a piece to turn it. Feed the live line at the
+          bottom left all the way to the lamp terminal at the top right.</p>
+        <div class="boxwrap">
+          <div class="jbox" id="jbox">
+            <span class="feed">live</span>
+            <span class="lampterm">lamp</span>
+          </div>
+        </div>
+        <div class="boxfoot" id="circuitFoot">
+          <span id="circuitCount">0 pieces live</span>
+        </div>
+      </div></div>
+      <div class="drawer"><span class="plate">Drawer 4 — Sealed</span><span class="pull"></span></div>
+    </div>
+
+    <div class="slot" id="slot5">
+      <div class="interior"><div class="folder">
+        <span class="tab">Drawer 5 — Agent teams</span>
+        <div class="sheet">
+          <h3>More than one at a time</h3>
+          <div class="org">Multi-phase review · parallel subagents · one human holding the yes</div>
+          <p>One agent is an assistant. Several, with different jobs and a fixed
+            order, are a team: one plans, several build in parallel, others
+            review against separate lenses, and a last one checks the work
+            against the brief rather than against itself. That is the pipeline
+            that produced most of the thirty-four projects in the folder.</p>
+          <p>What does not get delegated is the judgment. The facts, the pricing,
+            the client-facing promises and the final yes stay with the person
+            whose name is on the file.</p>
+          <div class="chips"><span class="chip">Multi-phase review</span><span class="chip">Parallel subagents</span><span class="chip">Human keeps the yes</span></div>
+          <div class="next">The cabinet is empty. Everything in it was true, and
+            every bar you lifted is still lifted.</div>
+        </div>
+      </div></div>
+      <div class="drawer"><span class="plate">Drawer 5 — Sealed</span><span class="pull"></span></div>
+    </div>
+  </div>
+
+  <!-- Room 1 — brass dial -->
+  <div class="lock live" id="lock1">
+    <p class="note">Turn the dial to a number, then press Enter to set it.<br>
+      Three numbers open it.</p>
+    <div class="window"><span id="dialNum">00</span></div>
+    <div class="dial" id="dial" tabindex="0" role="slider"
+         aria-label="Combination dial, 0 to 39. Arrow keys turn it; use the Enter button to set the number."
+         aria-valuemin="0" aria-valuemax="39" aria-valuenow="0">
+      <div class="fid"></div><div class="face" id="face"></div><div class="hub"></div>
+    </div>
+    <!-- Turning and entering are two separate acts. They used to be one, so
+         letting go of the dial committed whatever number happened to be under
+         the fiducial and there was no way to line one up and look at it. -->
+    <button type="button" class="setbtn" id="dialSet">Enter <b id="dialSetNum">00</b></button>
+    <div class="tums" id="tums"><div class="tum">—</div><div class="tum">—</div><div class="tum">—</div></div>
+  </div>
+
+  <!-- Room 2 — word lock -->
+  <div class="lock" id="lock2">
+    <p class="note">Six letters, then pull.<br>
+      The slip from drawer one's sorting frame prints it outright.</p>
+    <div class="wheels" id="wheels2"></div>
+    <button class="lever" data-lock="2">Pull</button>
+  </div>
+
+  <!-- Room 3 — time lock -->
+  <div class="lock" id="lock3">
+    <p class="note">Flip on what the agent is wired into, then pull.<br>
+      Drawer two names them in one sentence — and says how many.</p>
+    <div class="switchbank" id="switchbank"></div>
+    <button class="lever" data-lock="3">Pull</button>
+  </div>
+
+  <!-- Room 4 — wire board -->
+  <div class="lock" id="lock4">
+    <p class="note">Wire each thing to where it is filed, then pull.<br>
+      The filing slip from the card tray pairs them in three short sentences.</p>
+    <div class="board" id="board">
+      <svg id="cables"></svg>
+      <div class="rows" id="rows"></div>
+    </div>
+    <button class="lever" data-lock="4">Pull</button>
+  </div>
+
+  <!-- Room 5 — the notepad. The only lock whose answer is not written anywhere
+       in the file; you have to work the object to bring it up. -->
+  <div class="lock" id="lock5">
+    <p class="note">The last word is not in any of the drawers.<br>
+      It is on the pad — drag a pencil across it until it comes up, then set it
+      and pull.</p>
+    <!-- The pad stays under the blotter until the desk lamp is lit, so the
+         junction box is load-bearing rather than a decoration you can walk
+         past — and it pays off the chain-pull the room opened with. -->
+    <div class="padstage covered" id="padStage">
+      <p class="blotter" id="padCover">The desk blotter is shut over something.
+        Drawer four's note says what — once it can be read.</p>
+      <div class="padwrap">
+        <canvas class="pad" id="pad" width="920" height="360" tabindex="0"
+          aria-label="A blank notepad. Drag across it to shade over the sheet and raise the impression left by the page above."></canvas>
+        <p class="padhint" id="padhint">Drag anywhere on the pad</p>
+      </div>
+    </div>
+    <div class="wheels" id="bank5"></div>
+    <button class="lever" data-lock="5">Pull</button>
+  </div>
+
+  <div class="lock" id="lockDone">
+    <p class="note"><b>The cabinet is open.</b> Five drawers, one method — and
+      every word that was blacked out is now on the page.</p>
+  </div>
+
+  <p class="hint" id="hint"></p>
+
+  <div class="tools">
+    <button class="lnk" id="sound">Sound: off</button>
+    <button class="lnk" id="reset">Reset the locks</button>
+  </div>
+</div>
+
+<p class="sr" id="live" aria-live="polite"></p>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const NOTCHES = 40;
+  const KEY = 'fieldoffice.v3';
+
+  // Answers. Each one is stated plainly in the document that opened most
+  // recently, so every lock is answerable from what is already on screen.
+  const COMBO = [24, 3, 34];        // memo: since 2024, three years, thirty-four projects
+  const WORD  = 'METHOD';           // memo's closing line; blacked out in drawer 1
+  // The four places drawer 2 says the agent is wired into. Three plausible
+  // decoys sit alongside them, so skimming the sentence is not enough — you
+  // have to notice which four it actually names.
+  const WIRED = ['design', 'database', 'repo', 'deploy'];
+  // Order matters: the panel is two columns, so a simple correct/decoy
+  // alternation would drop every right answer into the left column and the
+  // lock could be solved by geometry without reading a word.
+  const SWITCHES = [
+    { k: 'design',      label: 'the design file' },
+    { k: 'inbox',       label: 'the inbox' },
+    { k: 'calendar',    label: 'the calendar' },
+    { k: 'database',    label: 'the database' },
+    { k: 'repo',        label: 'the repo' },
+    { k: 'spreadsheet', label: 'the spreadsheet' },
+    { k: 'deploy',      label: 'the deploy' },
+  ];
+  const PAIRS = { decisions: 'vault', steps: 'journal', tasks: 'board' };  // drawer 3
+  // Not from a drawer — pressed into the pad by the sheet that was torn off it.
+  // Deliberately the one answer you cannot read your way to, and deliberately
+  // the one thing the file says never gets handed to a machine.
+  const PRESSED = 'JUDGMENT';                                              // the pad
+
+  // Four rungs per lock. The first gives direction only — narrowing the answer
+  // on the first miss makes the lock decorative.
+  // Three rungs, and none of them says the answer. The room's whole promise is
+  // that everything is already written down, so a ladder that ends by reciting
+  // it makes the reading optional — and the reading is the résumé. The third
+  // rung points hard enough that anyone who has actually read the document can
+  // finish; past that it repeats rather than concedes.
+  const HINTS = {
+    1: [
+      'Not it. Everything the dial needs is on the memo above.',
+      'Three of the memo’s figures are set apart from the rest of the text. Those three, in the order it gives them.',
+      'Two are spelled out as words. The third is a year — and a dial that stops at thirty-nine can only take its last two digits.',
+    ],
+    2: [
+      'Not it. Six letters, and the slip under drawer one’s sorting frame prints the word outright.',
+      'If that slip has not appeared yet the frame is still shuffled — put the eight plates back in order, 1 to 8, and it comes free.',
+      'It is the word struck out on drawer one’s sheet, and the word the memo closes with: the part of the work that transfers, rather than the work itself.',
+    ],
+    3: [
+      'Not it. Drawer two names them in one sentence, and tells you how many there are.',
+      'Four places, and three of the switches on this panel are not among them.',
+      'Find the sentence about what MCP wires the agent into. It lists them in order; nothing outside that list belongs.',
+    ],
+    4: [
+      'Not it. Every pairing is on the filing slip that came out of the card tray.',
+      'Three destinations: a vault, a journal, a board. Each one takes a different kind of thing.',
+      'The slip names them in three short sentences, in the same order as the three terminals down the left of the board. Take them one at a time.',
+    ],
+    // This ladder teaches an action, not a fact: re-reading the drawers cannot
+    // produce this answer, so a rung that says "look again" would be a lie.
+    5: [
+      'Not it — and it is not written anywhere you can see yet. Drawer four says the desk lamp is out and the junction box is in pieces, and the pad is under the blotter in the dark.',
+      'Turn the conduit until the live line at the bottom left runs unbroken to the lamp terminal at the top right. The pieces already carrying current are the lit ones — follow them.',
+      'With the lamp on, the pad is there to work. Shade over it the way you would with the side of a pencil and cover all of it — the grooves will not take the graphite. Eight letters.',
+    ],
+  };
+
+  let stage = 0, misses = 0;
+
+  // ── Sound ───────────────────────────────────────────────────────────
+  let ctx = null, on = false, master = null;
+  function audio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = .9; master.connect(ctx.destination);
+  }
+  function noise(dur, vol, hz, sweep) {
+    if (!on || !ctx) return;
+    const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const b = ctx.createBuffer(1, n, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);
+    const s = ctx.createBufferSource(); s.buffer = b;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass';
+    f.frequency.setValueAtTime(hz, ctx.currentTime);
+    if (sweep) f.frequency.exponentialRampToValueAtTime(sweep, ctx.currentTime + dur);
+    f.Q.value = 1.1;
+    const g = ctx.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(master); s.start();
+  }
+  function tone(f0, f1, dur, vol, type) {
+    if (!on || !ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .02);
+  }
+  const sTick  = () => noise(.018, .16, 2600);
+  const sSet   = () => { noise(.07, .5, 900, 320); tone(180, 90, .09, .22, 'square'); };
+  const sWheel = () => { noise(.03, .3, 1500, 900); tone(320, 240, .05, .09, 'square'); };
+  const sPatch = () => { noise(.05, .35, 700, 420); tone(420, 300, .07, .1, 'triangle'); };
+  const sWrong = () => { noise(.16, .45, 260, 110); tone(90, 52, .3, .3, 'sawtooth'); };
+  const sChain = () => { noise(.05, .4, 1800, 700); tone(240, 150, .12, .16, 'square'); };
+  // Graphite on paper: dry, broadband, no pitch — a scrape rather than a click.
+  const sRub   = () => noise(.1, .12, 3200, 1400);
+  const sSeat  = () => { noise(.04, .3, 2200, 1100); tone(520, 380, .06, .07, 'triangle'); };
+  const sSlide = () => { noise(.09, .22, 480, 220); tone(140, 110, .1, .07, 'triangle'); };
+  const sOpen  = () => {
+    [0, .07, .14].forEach((d, i) => setTimeout(() => noise(.06, .45, 1200 - i * 260, 500), d * 1000));
+    setTimeout(() => { tone(760, 520, .5, .16, 'triangle'); noise(.55, .3, 420, 130); }, 240);
+  };
+
+  // ── Intro ───────────────────────────────────────────────────────────
+  const lines = [...document.querySelectorAll('#lines span')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Guarded because a restored session tears the intro out before this timer
+  // fires, and an unguarded lookup throws on null in front of every returning
+  // visitor.
+  const chainIn = () => { const c = $('#chain'); if (c) c.classList.add('in'); };
+  if (reduce) chainIn();
+  else {
+    lines.forEach((l, i) => setTimeout(() => l.classList.add('in'), 380 + i * 520));
+    setTimeout(chainIn, 380 + lines.length * 520 + 200);
+  }
+  // ── The chain ───────────────────────────────────────────────────────
+  // Verlet integration: each bead keeps its previous position, so velocity is
+  // implied rather than stored, and the links are held by relaxing a distance
+  // constraint several times per frame. That is what makes it hang and swing
+  // like a chain instead of stretching like a spring.
+  const chainCv = $('#chainCv'), cg = chainCv.getContext('2d');
+  const CW = chainCv.width, CH = chainCv.height;
+  const BEADS = 14, SEG = 7, GRAV = 0.6, DAMP = 0.985, RELAX = 14;
+  const TOP_Y = 22;
+  const REST_Y = TOP_Y + (BEADS - 1) * SEG;   // where the knob hangs at rest
+  // A decisive tug, with room to spare before the pointer clamp at CH-12 —
+  // set this too close to the clamp and a real pull can fail to register.
+  const TRIGGER = 44;
+  const bead = [];
+  for (let i = 0; i < BEADS; i++) bead.push({ x: CW / 2, y: TOP_Y + i * SEG, px: CW / 2, py: TOP_Y + i * SEG });
+
+  let grabbed = false, pulled = false, chainDone = false;
+
+  function stepChain() {
+    for (let i = 1; i < BEADS; i++) {
+      const p = bead[i];
+      if (grabbed && i === BEADS - 1) continue;   // the held bead follows the pointer
+      const vx = (p.x - p.px) * DAMP, vy = (p.y - p.py) * DAMP;
+      p.px = p.x; p.py = p.y;
+      p.x += vx; p.y += vy + GRAV;
+    }
+    for (let k = 0; k < RELAX; k++) {
+      for (let i = 0; i < BEADS - 1; i++) {
+        const a = bead[i], b = bead[i + 1];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 0.0001;
+        const diff = (d - SEG) / d * 0.5;
+        const ox = dx * diff, oy = dy * diff;
+        if (i !== 0) { a.x += ox; a.y += oy; }                     // bead 0 is the anchor
+        else { /* pinned */ }
+        if (!(grabbed && i + 1 === BEADS - 1)) { b.x -= ox; b.y -= oy; }
+      }
+      bead[0].x = CW / 2; bead[0].y = TOP_Y;
+    }
+  }
+
+  function drawChain() {
+    cg.clearRect(0, 0, CW, CH);
+    // ceiling plate the chain hangs from
+    cg.fillStyle = '#2a2118';
+    cg.fillRect(CW / 2 - 13, TOP_Y - 12, 26, 7);
+    cg.strokeStyle = '#6b5417'; cg.lineWidth = 1;
+    cg.strokeRect(CW / 2 - 13.5, TOP_Y - 12.5, 27, 8);
+
+    for (let i = 1; i < BEADS; i++) {
+      const p = bead[i];
+      const t = i / BEADS;
+      cg.beginPath();
+      cg.arc(p.x, p.y, 2.7, 0, 6.284);
+      cg.fillStyle = `rgb(${180 + t * 40}, ${150 + t * 35}, ${50 + t * 25})`;
+      cg.fill();
+    }
+    // the knob you actually grab
+    const k = bead[BEADS - 1];
+    const g = cg.createRadialGradient(k.x - 2.5, k.y - 3, 1, k.x, k.y, 9);
+    g.addColorStop(0, '#f6dc94'); g.addColorStop(.55, '#c9a227'); g.addColorStop(1, '#6b5417');
+    cg.beginPath(); cg.arc(k.x, k.y, 8.5, 0, 6.284);
+    cg.fillStyle = g; cg.fill();
+    cg.strokeStyle = '#3c2f0a'; cg.lineWidth = 1; cg.stroke();
+  }
+
+  // Held rather than re-queried each frame: a returning visitor has the intro
+  // torn out before the first frame runs, and looking it up per frame threw on
+  // null sixty times a second for the rest of the session.
+  const chainEl = $('#chain');
+  function chainFrame() {
+    if (chainDone || !chainEl.isConnected) return;
+    stepChain(); drawChain();
+    const drop = bead[BEADS - 1].y - REST_Y;
+    chainEl.classList.toggle('tug', drop > TRIGGER * 0.6);
+    requestAnimationFrame(chainFrame);
+  }
+
+  function pointerToCv(e) {
+    const r = chainCv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (CW / r.width), y: (e.clientY - r.top) * (CH / r.height) };
+  }
+  chainCv.addEventListener('pointerdown', e => {
+    const p = pointerToCv(e), k = bead[BEADS - 1];
+    if (Math.hypot(p.x - k.x, p.y - k.y) > 34) return;   // must actually take hold of the knob
+    grabbed = true; chainCv.setPointerCapture(e.pointerId);
+    audio();
+  });
+  chainCv.addEventListener('pointermove', e => {
+    if (!grabbed) return;
+    const p = pointerToCv(e), k = bead[BEADS - 1];
+    k.px = k.x; k.py = k.y;
+    k.x = Math.max(12, Math.min(CW - 12, p.x));
+    k.y = Math.min(CH - 12, Math.max(REST_Y - 20, p.y));
+    if (k.y - REST_Y > TRIGGER) pulled = true;
+  });
+  function releaseChain() {
+    if (!grabbed) return;
+    grabbed = false;
+    if (pulled) lightOn();
+    pulled = false;
+  }
+  chainCv.addEventListener('pointerup', releaseChain);
+  chainCv.addEventListener('pointercancel', releaseChain);
+  chainCv.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); audio(); lightOn(); }
+  });
+
+  function lightOn() {
+    if (chainDone) return;
+    chainDone = true;
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    sChain();
+    $('#intro').classList.add('gone');
+    setTimeout(() => $('#intro').remove(), 950);
+    $('#dial').focus({ preventScroll: true });
+  }
+  requestAnimationFrame(chainFrame);
+
+  // ── Dial ────────────────────────────────────────────────────────────
+  const face = $('#face'), dial = $('#dial'), dialNum = $('#dialNum');
+  const tums = [...document.querySelectorAll('.tum')];
+  const numEls = {}; let hotEl = null;
+  for (let i = 0; i < NOTCHES; i++) {
+    const t = document.createElement('div');
+    t.className = 'tick' + (i % 5 === 0 ? ' major' : '');
+    t.style.transform = `rotate(${i * 9}deg)`;
+    face.appendChild(t);
+    if (i % 5 === 0) {
+      const n = document.createElement('div');
+      n.className = 'num'; n.textContent = i; n.style.transform = `rotate(${i * 9}deg)`;
+      face.appendChild(n); numEls[i] = n;
+    }
+  }
+  let angle = 0, current = 0, lastNotch = 0, entered = [], dragging = false, startA = 0, startAng = 0;
+  const norm = a => ((a % 360) + 360) % 360;
+  function renderDial() {
+    face.style.transform = `rotate(${angle}deg)`;
+    current = norm(Math.round(-angle / 9)) % NOTCHES;
+    dial.setAttribute('aria-valuenow', String(current));
+    dialNum.textContent = String(current).padStart(2, '0');
+    if (hotEl) hotEl.classList.remove('hot');
+    hotEl = numEls[current] || null;
+    if (hotEl) hotEl.classList.add('hot');
+    if (current !== lastNotch) { sTick(); lastNotch = current; }
+    // The button carries the reading, so what pressing it will do is legible
+    // without looking back up at the window.
+    const label = $('#dialSetNum');
+    if (label) label.textContent = String(current).padStart(2, '0');
+  }
+  renderDial();
+  $('#dialSet').addEventListener('click', () => { audio(); setNumber(); });
+  const angleOf = e => {
+    const r = dial.getBoundingClientRect();
+    return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI;
+  };
+  // atan2 flips from +180 to -180 at nine o'clock. Subtracting raw angles across
+  // that seam reads a ten-degree nudge as a 350-degree spin, which threw the
+  // ring most of a revolution any time a drag passed the left of the dial. Every
+  // rotating control routes its delta through here.
+  const unwrapDelta = d => {
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    return d;
+  };
+  dial.addEventListener('pointerdown', e => {
+    if (stage !== 0) return;
+    audio(); dragging = true; startA = angleOf(e); startAng = angle; dial.setPointerCapture(e.pointerId);
+  });
+  // Snapped to whole notches, so the dial detents onto a number instead of
+  // resting between two and leaving you guessing which one it took. The raw
+  // angle is accumulated separately from the snapped one, or the rounding would
+  // eat every movement smaller than a notch.
+  dial.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const now = angleOf(e);
+    startAng += unwrapDelta(now - startA);
+    startA = now;
+    angle = Math.round(startAng / 9) * 9;
+    renderDial();
+  });
+  dial.addEventListener('pointerup', () => { dragging = false; });
+  dial.addEventListener('pointercancel', () => { dragging = false; });
+  dial.addEventListener('keydown', e => {
+    if (stage !== 0) return;
+    audio();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { angle += 9; renderDial(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { angle -= 9; renderDial(); e.preventDefault(); }
+    else if (e.key === 'Enter' || e.key === ' ') { setNumber(); e.preventDefault(); }
+  });
+  function setNumber() {
+    if (stage !== 0 || entered.length >= 3) return;
+    entered.push(current);
+    tums[entered.length - 1].textContent = String(current).padStart(2, '0');
+    tums[entered.length - 1].classList.add('set');
+    sSet();
+    live.textContent = `Set ${current}. ${3 - entered.length} to go.`;
+    if (entered.length === 3) setTimeout(() => {
+      if (entered.every((v, i) => v === COMBO[i])) unlock(1);
+      else fail(() => {
+        entered = [];
+        tums.forEach(t => { t.textContent = '—'; t.classList.remove('set'); });
+      });
+    }, 380);
+  }
+
+  // ── Wheel banks (letters for room 2, digits for room 3) ─────────────
+  function makeWheels(host, alphabet, count, startVals, activeStage) {
+    const vals = startVals.slice();
+    const els = [];
+    for (let i = 0; i < count; i++) {
+      const w = document.createElement('div');
+      w.className = 'wheel'; w.tabIndex = 0;
+      w.setAttribute('role', 'spinbutton');
+      w.setAttribute('aria-label', `Position ${i + 1} of ${count}`);
+      w.innerHTML = '<i class="a"></i><i class="b"></i><i class="c"></i>';
+      host.appendChild(w); els.push(w);
+
+      let dy = 0, down = false, base = 0;
+      w.addEventListener('pointerdown', e => {
+        if (stage !== activeStage) return;
+        audio(); down = true; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
+      });
+      w.addEventListener('pointermove', e => {
+        if (!down) return;
+        const step = Math.round((dy - e.clientY) / 18);
+        const next = ((base + step) % alphabet.length + alphabet.length) % alphabet.length;
+        if (next !== vals[i]) { vals[i] = next; draw(i); sWheel(); }
+      });
+      w.addEventListener('pointerup', () => { down = false; });
+      w.addEventListener('keydown', e => {
+        if (stage !== activeStage) return;
+        audio();
+        const L = alphabet.length;
+        if (e.key === 'ArrowUp') { vals[i] = (vals[i] + 1) % L; draw(i); sWheel(); e.preventDefault(); }
+        else if (e.key === 'ArrowDown') { vals[i] = (vals[i] + L - 1) % L; draw(i); sWheel(); e.preventDefault(); }
+        else if (e.key === 'Enter') { pull(activeStage + 1); e.preventDefault(); }
+        else if (alphabet.indexOf(e.key.toUpperCase()) >= 0) {
+          vals[i] = alphabet.indexOf(e.key.toUpperCase()); draw(i); sWheel();
+          if (els[i + 1]) els[i + 1].focus();
+        }
+      });
+    }
+    function draw(i) {
+      const w = els[i], v = vals[i], L = alphabet.length;
+      w.querySelector('.a').textContent = alphabet[(v + L - 1) % L];
+      w.querySelector('.b').textContent = alphabet[v];
+      w.querySelector('.c').textContent = alphabet[(v + 1) % L];
+      w.setAttribute('aria-valuetext', alphabet[v]);
+    }
+    vals.forEach((_, i) => draw(i));
+    return {
+      value: () => vals.map(v => alphabet[v]).join(''),
+      set: str => { str.split('').forEach((c, i) => { vals[i] = alphabet.indexOf(c); draw(i); }); },
+      reset: () => { startVals.forEach((v, i) => { vals[i] = v; draw(i); }); },
+    };
+  }
+  const bank2 = makeWheels($('#wheels2'), A, 6, [20, 4, 13, 2, 14, 17], 1);
+  const bank5 = makeWheels($('#bank5'), A, 8, [2, 9, 17, 0, 5, 22, 8, 11], 4);
+
+  // ── Switch bank ─────────────────────────────────────────────────────
+  const bankEl = $('#switchbank');
+  const flipped = new Set();
+  const swEls = {};
+  SWITCHES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.dataset.k = s.k;
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = `<span class="swb"><i></i></span><span>${s.label}</span>`;
+    b.addEventListener('click', () => {
+      if (stage !== 2) return;
+      audio();
+      if (flipped.has(s.k)) flipped.delete(s.k); else flipped.add(s.k);
+      paintSwitches(); sWheel();
+    });
+    bankEl.appendChild(b); swEls[s.k] = b;
+  });
+  function paintSwitches() {
+    SWITCHES.forEach(s => {
+      const on = flipped.has(s.k);
+      swEls[s.k].classList.toggle('on', on);
+      swEls[s.k].setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  // ── Wire board ──────────────────────────────────────────────────────
+  const LEFT = ['decisions', 'steps', 'tasks'];
+  const RIGHT = ['journal', 'board', 'vault'];   // deliberately not in matching order
+  const rows = $('#rows'), cables = $('#cables');
+  const wires = {};             // left -> right
+  let picked = null;
+  const leftEls = {}, rightEls = {};
+  LEFT.forEach((l, i) => {
+    const a = document.createElement('button');
+    a.className = 'term'; a.dataset.side = 'l'; a.dataset.k = l;
+    a.innerHTML = `<span class="jackdot"></span><span>${l}</span>`;
+    const m = document.createElement('div'); m.className = 'mid'; m.textContent = '·····';
+    const b = document.createElement('button');
+    b.className = 'term right'; b.dataset.side = 'r'; b.dataset.k = RIGHT[i];
+    b.innerHTML = `<span class="jackdot"></span><span>the ${RIGHT[i]}</span>`;
+    rows.append(a, m, b);
+    leftEls[l] = a; rightEls[RIGHT[i]] = b;
+  });
+  function drawWires() {
+    cables.innerHTML = '';
+    const box = cables.getBoundingClientRect();
+    for (const [l, r] of Object.entries(wires)) {
+      const A1 = leftEls[l].getBoundingClientRect(), B1 = rightEls[r].getBoundingClientRect();
+      const x1 = A1.right - box.left - 10, y1 = A1.top - box.top + A1.height / 2;
+      const x2 = B1.left - box.left + 10, y2 = B1.top - box.top + B1.height / 2;
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', `M${x1},${y1} C${x1 + 34},${y1 + 16} ${x2 - 34},${y2 + 16} ${x2},${y2}`);
+      p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'var(--wire)');
+      p.setAttribute('stroke-width', '2.5'); p.setAttribute('stroke-linecap', 'round');
+      cables.appendChild(p);
+    }
+  }
+  rows.addEventListener('click', e => {
+    const t = e.target.closest('.term');
+    if (!t || stage !== 3) return;
+    audio();
+    const side = t.dataset.side, k = t.dataset.k;
+    if (!picked) {
+      picked = { side, k }; t.classList.add('live'); sPatch(); return;
+    }
+    if (picked.side === side) {
+      (side === 'l' ? leftEls : rightEls)[picked.k].classList.remove('live');
+      picked = { side, k }; t.classList.add('live'); return;
+    }
+    const l = side === 'l' ? k : picked.k;
+    const r = side === 'r' ? k : picked.k;
+    if (wires[l] === r) delete wires[l];
+    else { for (const [k2, v] of Object.entries(wires)) if (v === r) delete wires[k2]; wires[l] = r; }
+    leftEls[picked.side === 'l' ? picked.k : l].classList.remove('live');
+    rightEls[picked.side === 'r' ? picked.k : r].classList.remove('live');
+    t.classList.remove('live');
+    picked = null;
+    Object.values(leftEls).forEach(el => el.classList.remove('wired'));
+    Object.values(rightEls).forEach(el => el.classList.remove('wired'));
+    for (const [k2, v] of Object.entries(wires)) { leftEls[k2].classList.add('wired'); rightEls[v].classList.add('wired'); }
+    sPatch(); drawWires();
+  });
+
+  // ── The pad ─────────────────────────────────────────────────────────
+  // Three layers. GROOVE holds the impression the torn-off sheet pressed
+  // through; RUB accumulates wherever the user drags. Graphite is painted only
+  // where RUB has coverage, then the grooves are punched back out of it — which
+  // is what a real rubbing does, since the pencil rides over an indentation
+  // instead of filling it. The word is therefore never drawn; it is what is
+  // left of the paper when the shading goes down around it.
+  const pad = $('#pad'), pctx = pad.getContext('2d');
+  const PW = pad.width, PH = pad.height;
+  const groove = document.createElement('canvas');
+  const rub = document.createElement('canvas');
+  const ink = document.createElement('canvas');
+  [groove, rub, ink].forEach(c => { c.width = PW; c.height = PH; });
+  const gctx = groove.getContext('2d'), rctx = rub.getContext('2d'), ictx = ink.getContext('2d');
+
+  // Block capitals with a per-letter tilt and drift, so it reads as pressed by
+  // a hand rather than set by a machine. Deterministic — no Math.random, or the
+  // impression would move every time the lock is reset.
+  (function pressWord() {
+    gctx.clearRect(0, 0, PW, PH);
+    gctx.fillStyle = '#000';
+    gctx.textAlign = 'center';
+    gctx.textBaseline = 'middle';
+    const letters = PRESSED.split('');
+    const step = 92, x0 = PW / 2 - ((letters.length - 1) * step) / 2;
+    letters.forEach((ch, i) => {
+      const wob = Math.sin(i * 2.3) , lift = Math.cos(i * 1.7);
+      gctx.save();
+      gctx.translate(x0 + i * step, PH / 2 + lift * 7);
+      gctx.rotate(wob * 0.035);
+      gctx.font = '700 74px Georgia, "Times New Roman", serif';
+      gctx.fillText(ch, 0, 0);
+      gctx.restore();
+    });
+  })();
+
+  let rubbed = 0;              // rough coverage, only used to fade the prompt
+  const padHint = $('#padhint');
+
+  function paintPad() {
+    // Paper, ruled like a legal pad, with the torn edge along the top.
+    pctx.fillStyle = '#e8dcb9';
+    pctx.fillRect(0, 0, PW, PH);
+    pctx.strokeStyle = 'rgba(90,120,150,.32)';
+    pctx.lineWidth = 1;
+    for (let y = 58; y < PH; y += 46) {
+      pctx.beginPath(); pctx.moveTo(0, y + .5); pctx.lineTo(PW, y + .5); pctx.stroke();
+    }
+    pctx.strokeStyle = 'rgba(150,60,50,.35)';
+    pctx.beginPath(); pctx.moveTo(64.5, 0); pctx.lineTo(64.5, PH); pctx.stroke();
+    // Ragged top edge — the sheet above this one was torn away.
+    pctx.fillStyle = 'rgba(60,42,20,.30)';
+    for (let x = 0; x < PW; x += 9) {
+      pctx.fillRect(x, 0, 9, 3 + Math.abs(Math.sin(x * 0.21)) * 5);
+    }
+
+    // Graphite, masked to what has been rubbed, with the grooves knocked out.
+    ictx.clearRect(0, 0, PW, PH);
+    ictx.globalCompositeOperation = 'source-over';
+    ictx.drawImage(rub, 0, 0);
+    ictx.globalCompositeOperation = 'source-in';
+    ictx.fillStyle = '#2f2b26';
+    ictx.fillRect(0, 0, PW, PH);
+    ictx.globalCompositeOperation = 'destination-out';
+    ictx.drawImage(groove, 0, 0);
+    ictx.globalCompositeOperation = 'source-over';
+    pctx.drawImage(ink, 0, 0);
+  }
+
+  function rubAt(x, y) {
+    const r = 46;
+    const g = rctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(0,0,0,.26)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    rctx.fillStyle = g;
+    rctx.beginPath(); rctx.arc(x, y, r, 0, Math.PI * 2); rctx.fill();
+    rubbed++;
+    if (rubbed === 6) padHint.textContent = 'Something was written on the sheet above this one';
+    if (rubbed === 40) padHint.textContent = '';
+    paintPad();
+  }
+
+  let rubbing = false, lastRub = 0;
+  function padPoint(e) {
+    const b = pad.getBoundingClientRect();
+    return [(e.clientX - b.left) * (PW / b.width), (e.clientY - b.top) * (PH / b.height)];
+  }
+  pad.addEventListener('pointerdown', e => {
+    if (stage !== 4) return;
+    audio(); rubbing = true; pad.setPointerCapture(e.pointerId);
+    rubAt(...padPoint(e)); e.preventDefault();
+  });
+  pad.addEventListener('pointermove', e => {
+    if (!rubbing) return;
+    rubAt(...padPoint(e));
+    // The rasp of graphite, rate-limited so a fast drag doesn't stack voices.
+    const now = performance.now();
+    if (now - lastRub > 90) { lastRub = now; sRub(); }
+  });
+  const stopRub = () => { rubbing = false; };
+  pad.addEventListener('pointerup', stopRub);
+  pad.addEventListener('pointercancel', stopRub);
+  // Keyboard equivalent: the puzzle is the reveal, so a keyboard user gets the
+  // reveal, not a dexterity test they cannot pass.
+  pad.addEventListener('keydown', e => {
+    if (stage !== 4) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault(); audio(); revealPad(); sRub();
+    padHint.textContent = '';
+  });
+  function revealPad() {
+    rctx.fillStyle = 'rgba(0,0,0,.42)';
+    rctx.fillRect(0, 0, PW, PH);
+    paintPad();
+  }
+  function clearPad() {
+    pad.style.touchAction = 'none';
+    rctx.clearRect(0, 0, PW, PH);
+    rubbed = 0; padHint.textContent = 'Drag anywhere on the pad';
+    paintPad();
+  }
+  paintPad();
+
+  // ── Torn page (gates lock 3) ────────────────────────────────────────
+  // A lattice with jittered interior points. Neighbours read the SAME point
+  // objects, so however ragged the cuts get the twelve clips still tessellate
+  // and the reassembled page has no seams.
+  const COLS = 4, ROWS = 3, PAD = 14, SNAP = 30;
+  // Measured, not fixed: the reassembled page has to come out the same width as
+  // the plain sheet in every other drawer, and a tray wider than the page plus
+  // a scale-to-fit was quietly rendering it smaller than its neighbours.
+  let PAGE_W = 560, TRAY_W = 560;
+  const torn = $('#torn'), tornWrap = torn.parentElement, outline = $('#tornOutline');
+  let tornDone = false, tornPieces = [], seated = 0, PAGE_H = 330, TRAY_H = 530, PX = 30, PY = 100;
+
+  // Seeded so a reset deals the same page rather than a different jigsaw, and
+  // so the cut lines are part of the design rather than a fresh accident.
+  let tornSeed = 20260805;
+  const rnd = () => ((tornSeed = (tornSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+
+  function buildTorn() {
+    torn.querySelectorAll('.piece').forEach(el => el.remove());
+    tornPieces = []; seated = 0; tornSeed = 20260805; tornDone = false;
+    // Measuring under a live scale() would return scaled pixels and slice the
+    // page in the wrong places; fitTorn puts the transform back at the end.
+    torn.style.transform = 'none';
+
+    // The tray is exactly the page, so the page fills the drawer the way a
+    // sheet does. Room to scatter into is found above and below, not beside.
+    PAGE_W = TRAY_W = Math.max(260, Math.round(tornWrap.clientWidth));
+
+    const tpl = $('#page2').content.firstElementChild;
+    // Measure the real page once: its height depends on how the prose wraps,
+    // and guessing it would slice a line of text in half.
+    const probe = tpl.cloneNode(true);
+    probe.style.cssText = 'width:' + PAGE_W + 'px;position:absolute;visibility:hidden;left:-9999px';
+    torn.appendChild(probe);
+    PAGE_H = Math.ceil(probe.getBoundingClientRect().height);
+    probe.remove();
+
+    TRAY_H = PAGE_H + 210; PY = 104; PX = 0;
+    torn.style.width = TRAY_W + 'px';
+    torn.style.height = TRAY_H + 'px';
+    Object.assign(outline.style, {
+      left: PX + 'px', top: PY + 'px', width: PAGE_W + 'px', height: PAGE_H + 'px',
+    });
+    outline.classList.remove('gone');
+    torn.classList.remove('whole');
+
+    const cw = PAGE_W / COLS, ch = PAGE_H / ROWS;
+    const J = 9, edge = (r, c) => r === 0 || c === 0 || r === ROWS || c === COLS;
+    const P = [], H = [], V = [];
+    for (let r = 0; r <= ROWS; r++) {
+      P[r] = [];
+      for (let c = 0; c <= COLS; c++) {
+        P[r][c] = edge(r, c)
+          ? { x: c * cw, y: r * ch }
+          : { x: c * cw + (rnd() - .5) * 2 * J, y: r * ch + (rnd() - .5) * 2 * J };
+      }
+    }
+    for (let r = 0; r <= ROWS; r++) {
+      H[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        const a = P[r][c], b = P[r][c + 1];
+        H[r][c] = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 + (r === 0 || r === ROWS ? 0 : (rnd() - .5) * 14) };
+      }
+    }
+    for (let r = 0; r < ROWS; r++) {
+      V[r] = [];
+      for (let c = 0; c <= COLS; c++) {
+        const a = P[r][c], b = P[r + 1][c];
+        V[r][c] = { x: (a.x + b.x) / 2 + (c === 0 || c === COLS ? 0 : (rnd() - .5) * 14), y: (a.y + b.y) / 2 };
+      }
+    }
+
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const ox = c * cw - PAD, oy = r * ch - PAD;
+      const poly = [P[r][c], H[r][c], P[r][c + 1], V[r][c + 1], P[r + 1][c + 1], H[r + 1][c], P[r + 1][c], V[r][c]]
+        .map(p => `${(p.x - ox).toFixed(1)}px ${(p.y - oy).toFixed(1)}px`).join(',');
+
+      const el = document.createElement('div');
+      el.className = 'piece';
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', `Torn piece ${r * COLS + c + 1} of ${ROWS * COLS}. Press Enter to place it.`);
+      el.style.width = (cw + PAD * 2) + 'px';
+      el.style.height = (ch + PAD * 2) + 'px';
+      el.style.clipPath = `polygon(${poly})`;
+
+      const copy = tpl.cloneNode(true);
+      copy.style.width = PAGE_W + 'px';
+      copy.style.left = (-ox) + 'px';
+      copy.style.top = (-oy) + 'px';
+      el.appendChild(copy);
+
+      const home = { x: PX + ox, y: PY + oy };
+      // Strewn across the whole tray and tilted, the way a torn-up page
+      // actually lands. Confined to the margins it read as a grid with gaps in
+      // it — which gave away where every piece belonged.
+      let sx = rnd() * (TRAY_W - cw - PAD), sy = rnd() * (TRAY_H - ch - PAD);
+      // Nothing starts near enough to its home to be mistaken for placed.
+      if (Math.hypot(sx - home.x, sy - home.y) < 90) {
+        sx = (sx + TRAY_W / 2) % (TRAY_W - cw - PAD);
+        sy = (sy + TRAY_H / 2) % (TRAY_H - ch - PAD);
+      }
+      const rot = (rnd() - .5) * 26;
+      Object.assign(el.style, { left: sx.toFixed(1) + 'px', top: sy.toFixed(1) + 'px', transform: `rotate(${rot.toFixed(1)}deg)`, zIndex: String(2 + Math.floor(rnd() * 8)) });
+
+      const piece = { el, home, done: false };
+      tornPieces.push(piece);
+      wirePiece(piece);
+      torn.appendChild(el);
+    }
+    applyTornScale();
+  }
+
+  function tornScale() {
+    const r = torn.getBoundingClientRect();
+    return r.width / TRAY_W || 1;
+  }
+  function applyTornScale() {
+    const s = Math.min(1, tornWrap.clientWidth / TRAY_W) || 1;
+    torn.style.transform = s === 1 ? 'none' : `scale(${s})`;
+    tornWrap.style.height = (TRAY_H * s) + 'px';
+  }
+  // On a width change the page has to be rebuilt, not scaled, or it stops
+  // matching the sheets around it. Mid-assembly that would throw away the
+  // player's work, so a part-solved tray scales instead and is re-laid out the
+  // moment it is finished or restarted.
+  function fitTorn() {
+    const w = tornWrap.clientWidth;
+    if (!w) return;
+    if (Math.abs(w - TRAY_W) > 2 && (seated === 0 || tornDone)) {
+      const wasDone = tornDone;
+      buildTorn();
+      if (wasDone) tornPieces.forEach(p => seatPiece(p, true));
+      return;
+    }
+    applyTornScale();
+  }
+
+  function seatPiece(p, quiet) {
+    if (p.done) return;
+    p.done = true; seated++;
+    p.el.classList.add('settling', 'seated');
+    p.el.style.left = p.home.x + 'px';
+    p.el.style.top = p.home.y + 'px';
+    p.el.style.transform = 'none';
+    p.el.style.zIndex = '1';
+    p.el.tabIndex = -1;
+    p.el.setAttribute('aria-label', 'Placed');
+    if (!quiet) sSeat();
+    if (seated === tornPieces.length) tornWhole(quiet);
+  }
+
+  function tornWhole(quiet) {
+    tornDone = true;
+    outline.classList.add('gone');
+    torn.classList.add('whole');
+    $('#tornTask').classList.add('spent');
+    $('#tornTask').textContent = 'The page is whole. It names four places, and says how many.';
+    if (!quiet) { sOpen(); live.textContent = 'The page is whole and can be read.'; }
+  }
+
+  function wirePiece(p) {
+    const el = p.el;
+    let grab = null;
+    el.addEventListener('pointerdown', e => {
+      if (p.done || stage !== 2) return;
+      const s = tornScale(), r = torn.getBoundingClientRect();
+      grab = { dx: (e.clientX - r.left) / s - parseFloat(el.style.left),
+               dy: (e.clientY - r.top) / s - parseFloat(el.style.top) };
+      el.classList.remove('settling');
+      el.style.zIndex = '40';
+      el.setPointerCapture(e.pointerId);
+      audio(); e.preventDefault();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!grab) return;
+      const s = tornScale(), r = torn.getBoundingClientRect();
+      // Held inside the tray. The page now runs edge to edge, so an unclamped
+      // drag could park a piece in the overflow where it cannot be got back.
+      const x = (e.clientX - r.left) / s - grab.dx;
+      const y = (e.clientY - r.top) / s - grab.dy;
+      el.style.left = Math.max(-PAD, Math.min(TRAY_W - el.offsetWidth + PAD, x)).toFixed(1) + 'px';
+      el.style.top = Math.max(0, Math.min(TRAY_H - el.offsetHeight, y)).toFixed(1) + 'px';
+    });
+    const drop = () => {
+      if (!grab) return;
+      grab = null;
+      const dx = parseFloat(el.style.left) - p.home.x, dy = parseFloat(el.style.top) - p.home.y;
+      if (Math.hypot(dx, dy) < SNAP) seatPiece(p);
+      else el.style.zIndex = '10';
+    };
+    el.addEventListener('pointerup', drop);
+    el.addEventListener('pointercancel', drop);
+    // Placing twelve pieces by drag is a dexterity task; the puzzle is meant to
+    // be the assembly, so a keyboard seats the focused piece outright.
+    el.addEventListener('keydown', e => {
+      if (p.done || stage !== 2) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault(); audio(); seatPiece(p);
+      const nxt = tornPieces.find(q => !q.done);
+      if (nxt) nxt.el.focus();
+    });
+  }
+
+  // ── Card tray (gates lock 4) ────────────────────────────────────────
+  // Sliding guides; the red card has to reach the slot. Verified solvable in
+  // nine moves — enough that it has to be planned, short enough to stay a
+  // puzzle rather than a chore.
+  const CELL = 62, GRID = 6;
+  // Nine guides, seventeen moves at best — breadth-first searched, not guessed.
+  // The first board fell in nine and was over before it started; the second ran
+  // to forty-two and stopped being a puzzle on the way to the résumé.
+  const START = [
+    { id: 'K', r: 2, c: 0, len: 2, dir: 'h', key: true },
+    { id: 'b', r: 0, c: 2, len: 3, dir: 'v' },
+    { id: 'c', r: 0, c: 1, len: 2, dir: 'v' },
+    { id: 'd', r: 1, c: 3, len: 2, dir: 'h' },
+    { id: 'e', r: 3, c: 2, len: 2, dir: 'h' },
+    { id: 'f', r: 4, c: 0, len: 3, dir: 'h' },
+    { id: 'g', r: 0, c: 0, len: 2, dir: 'v' },
+    { id: 'h', r: 4, c: 5, len: 2, dir: 'v' },
+    { id: 'i', r: 3, c: 4, len: 2, dir: 'h' },
+  ];
+  const trayEl = $('#tray'), slipEl = $('#slip'), trayFoot = $('#trayFoot');
+  let blocks = [], trayDone = false, trayMoves = 0;
+
+  function buildTray() {
+    trayEl.querySelectorAll('.blk').forEach(el => el.remove());
+    trayEl.style.width = (GRID * CELL) + 'px';
+    trayEl.style.height = (GRID * CELL) + 'px';
+    Object.assign(trayEl.querySelector('.slotgap').style, {
+      right: '-5px', top: (2 * CELL + 6) + 'px', width: '6px', height: (CELL - 12) + 'px',
+    });
+    slipEl.classList.remove('out');
+    trayDone = false; trayMoves = 0;
+    trayFoot.classList.remove('spent');
+    $('#trayMoves').textContent = '0 moves';
+
+    fitTray();
+    blocks = START.map(b => {
+      const el = document.createElement('div');
+      el.className = 'blk' + (b.key ? ' key' : '');
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', b.key
+        ? 'The red card. Move it right until it clears the tray.'
+        : `A guide, ${b.len} long, sliding ${b.dir === 'h' ? 'left and right' : 'up and down'}.`);
+      trayEl.appendChild(el);
+      const blk = { ...b, el };
+      wireBlock(blk);
+      return blk;
+    });
+    paintTray();
+  }
+
+  function paintTray() {
+    for (const b of blocks) {
+      const w = (b.dir === 'h' ? b.len : 1) * CELL - 6;
+      const h = (b.dir === 'v' ? b.len : 1) * CELL - 6;
+      Object.assign(b.el.style, {
+        left: (b.c * CELL + 3) + 'px', top: (b.r * CELL + 3) + 'px',
+        width: w + 'px', height: h + 'px',
+      });
+    }
+  }
+
+  // How far this block can travel before it hits another, in cells.
+  function span(me) {
+    const occ = Array.from({ length: GRID }, () => Array(GRID).fill(false));
+    for (const b of blocks) {
+      if (b === me) continue;
+      for (let i = 0; i < b.len; i++) occ[b.r + (b.dir === 'v' ? i : 0)][b.c + (b.dir === 'h' ? i : 0)] = true;
+    }
+    let lo = me.dir === 'h' ? me.c : me.r, hi = lo;
+    const free = (r, c) => r >= 0 && c >= 0 && r < GRID && c < GRID && !occ[r][c];
+    while (free(me.dir === 'v' ? lo - 1 : me.r, me.dir === 'h' ? lo - 1 : me.c)) lo--;
+    while (free(me.dir === 'v' ? hi + me.len : me.r, me.dir === 'h' ? hi + me.len : me.c)) hi++;
+    return [lo, hi];
+  }
+
+  function trayScale() {
+    const r = trayEl.getBoundingClientRect();
+    return r.width / (GRID * CELL) || 1;
+  }
+  // A 372px board overflows a phone, so it scales down bodily. Every drag
+  // measurement already goes through trayScale(), so the maths follows it.
+  function fitTray() {
+    const size = GRID * CELL;
+    const s = Math.min(1, trayEl.parentElement.clientWidth / size) || 1;
+    trayEl.style.transform = `scale(${s})`;
+    trayEl.parentElement.style.height = (size * s) + 'px';
+  }
+
+  function moveBlock(b, to) {
+    const [lo, hi] = span(b);
+    const v = Math.max(lo, Math.min(hi, to));
+    const was = b.dir === 'h' ? b.c : b.r;
+    if (b.dir === 'h') b.c = v; else b.r = v;
+    b.el.classList.add('settle');
+    paintTray();
+    // A drag that ends where it started is not a move, and counting it would
+    // make the tally lie about how close the player is.
+    if (v !== was) {
+      trayMoves++;
+      $('#trayMoves').textContent = trayMoves + (trayMoves === 1 ? ' move' : ' moves');
+      sSlide();
+    }
+    checkTray();
+  }
+
+  function wireBlock(b) {
+    let grab = null;
+    b.el.addEventListener('pointerdown', e => {
+      if (trayDone || stage !== 3) return;
+      const s = trayScale();
+      grab = { x: e.clientX / s, y: e.clientY / s, r: b.r, c: b.c, span: span(b) };
+      b.el.classList.remove('settle');
+      b.el.setPointerCapture(e.pointerId);
+      audio(); e.preventDefault();
+    });
+    b.el.addEventListener('pointermove', e => {
+      if (!grab) return;
+      const s = trayScale(), [lo, hi] = grab.span;
+      if (b.dir === 'h') {
+        const px = grab.c * CELL + (e.clientX / s - grab.x);
+        b.el.style.left = (Math.max(lo, Math.min(hi, px / CELL)) * CELL + 3) + 'px';
+      } else {
+        const py = grab.r * CELL + (e.clientY / s - grab.y);
+        b.el.style.top = (Math.max(lo, Math.min(hi, py / CELL)) * CELL + 3) + 'px';
+      }
+    });
+    const release = () => {
+      if (!grab) return;
+      const px = parseFloat(b.dir === 'h' ? b.el.style.left : b.el.style.top) - 3;
+      grab = null;
+      moveBlock(b, Math.round(px / CELL));
+    };
+    b.el.addEventListener('pointerup', release);
+    b.el.addEventListener('pointercancel', release);
+    b.el.addEventListener('keydown', e => {
+      if (trayDone || stage !== 3) return;
+      const back = b.dir === 'h' ? 'ArrowLeft' : 'ArrowUp';
+      const fwd = b.dir === 'h' ? 'ArrowRight' : 'ArrowDown';
+      if (e.key !== back && e.key !== fwd) return;
+      e.preventDefault(); audio();
+      moveBlock(b, (b.dir === 'h' ? b.c : b.r) + (e.key === fwd ? 1 : -1));
+    });
+  }
+
+  function checkTray() {
+    const k = blocks[0];
+    if (trayDone || k.c + k.len !== GRID) return;
+    releaseSlip(false);
+  }
+
+  function releaseSlip(quiet) {
+    trayDone = true;
+    const k = blocks[0];
+    k.el.classList.remove('settle');
+    k.el.classList.add('out');
+    k.el.style.left = (GRID * CELL + 40) + 'px';
+    $('#trayTask').classList.add('spent');
+    $('#trayTask').textContent = 'The card is out, and the slip came with it.';
+    trayFoot.classList.add('spent');
+    setTimeout(() => {
+      slipEl.classList.add('out');
+      if (!quiet) { sOpen(); live.textContent = 'A filing slip came out of the tray.'; }
+    }, quiet ? 0 : 620);
+  }
+
+  function solveTrayNow() {
+    blocks[0].c = GRID - blocks[0].len;
+    paintTray();
+    releaseSlip(true);
+  }
+
+  // ── Sorting frame (gates lock 2) ────────────────────────────────────
+  // Working METHOD out meant tying drawer one's blacked-out word to the memo's
+  // closing line, which is a leap. The word is now printed on a slip, and the
+  // frame is what stands between you and it — the difficulty moved from
+  // guessing to doing. Scrambled by legal moves only, so it is always solvable;
+  // this one is sixteen moves from home, breadth-first measured.
+  const SCRAMBLE = ['2','3','.','1','7','4','6','5','8'];
+  const SOLVED = '12345678.';
+  const FCELL = 62, FGAP = 4, FPAD = 12;
+  const frameEl = $('#frame');
+  let fboard = SCRAMBLE.slice(), fslugs = {}, frameDone = false, frameMoves = 0;
+
+  function buildFrame() {
+    frameEl.querySelectorAll('.slug').forEach(el => el.remove());
+    fslugs = {}; fboard = SCRAMBLE.slice(); frameDone = false; frameMoves = 0;
+    frameEl.classList.remove('solved');
+    $('#frameFoot').classList.remove('spent');
+    $('#frameMoves').textContent = '0 moves';
+    $('#wordSlip').classList.remove('out');
+    for (const n of '12345678') {
+      const el = document.createElement('div');
+      el.className = 'slug';
+      el.textContent = n;
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.addEventListener('click', () => slide(n));
+      el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault(); slide(n);
+      });
+      frameEl.appendChild(el);
+      fslugs[n] = el;
+    }
+    paintFrame();
+  }
+
+  function paintFrame() {
+    fboard.forEach((n, i) => {
+      if (n === '.') return;
+      const el = fslugs[n];
+      el.style.left = (FPAD + (i % 3) * (FCELL + FGAP)) + 'px';
+      el.style.top = (FPAD + Math.floor(i / 3) * (FCELL + FGAP)) + 'px';
+      el.setAttribute('aria-label', `Plate ${n}, row ${Math.floor(i / 3) + 1}, column ${(i % 3) + 1}`);
+    });
+  }
+
+  function slide(n) {
+    if (frameDone || stage !== 1) return;
+    const at = fboard.indexOf(n), gap = fboard.indexOf('.');
+    const sameRow = Math.floor(at / 3) === Math.floor(gap / 3);
+    const adjacent = (sameRow && Math.abs(at - gap) === 1) || Math.abs(at - gap) === 3;
+    if (!adjacent) return;                       // only a plate beside the berth moves
+    audio();
+    fboard[gap] = n; fboard[at] = '.';
+    frameMoves++;
+    $('#frameMoves').textContent = frameMoves + (frameMoves === 1 ? ' move' : ' moves');
+    sSlide(); paintFrame();
+    if (fboard.join('') === SOLVED) releaseWord(false);
+  }
+
+  function releaseWord(quiet) {
+    frameDone = true;
+    frameEl.classList.add('solved');
+    $('#frameFoot').classList.add('spent');
+    $('#frameTask').classList.add('spent');
+    $('#frameTask').textContent = 'The frame is in order, and the slip underneath is free.';
+    setTimeout(() => {
+      $('#wordSlip').classList.add('out');
+      if (!quiet) { sOpen(); live.textContent = 'A slip came out from under the plates.'; }
+    }, quiet ? 0 : 500);
+  }
+
+  function solveFrame(quiet) {
+    fboard = SOLVED.split('');
+    paintFrame();
+    releaseWord(quiet);
+  }
+
+  buildFrame();
+  $('#frameReset').addEventListener('click', () => { audio(); buildFrame(); sSlide(); });
+
+  // ── Junction box (gates the pad, and so lock 5) ─────────────────────
+  // Each conduit piece is a bitmask of its open faces (N E S W). Turning a
+  // piece rotates the mask; current is a flood fill from the live feed that
+  // only crosses an edge when BOTH pieces are open to it. MASK holds the board
+  // as it should end up and ROTS the turns it was left in — both generated and
+  // breadth-first checked offline, so the route is known to exist.
+  const BN = 1, BE = 2, BS = 4, BW = 8;
+  const CCOLS = 5, CROWS = 4;
+  const MASK = [4,0,0,4,6,7,12,6,11,9,5,3,13,0,0,9,0,1,0,0];
+  const ROTS = [3,0,0,1,1,1,2,1,1,3,1,3,1,0,0,3,0,3,0,0];
+  const FEED = 15, LAMP = 4;                    // cell indices of the two terminals
+  const CDIRS = [[BN,-1,0],[BE,0,1],[BS,1,0],[BW,0,-1]];
+  const COPP = { [BN]: BS, [BE]: BW, [BS]: BN, [BW]: BE };
+  const spin = (m, k) => { let r = m; for (let i = 0; i < k; i++) r = ((r << 1) | (r >> 3)) & 15; return r; };
+
+  const jbox = $('#jbox'), padStage = $('#padStage');
+  let turns = ROTS.slice(), tiles = [], circuitDone = false;
+
+  function buildBox() {
+    jbox.querySelectorAll('.tile').forEach(el => el.remove());
+    tiles = [];
+    for (let i = 0; i < CROWS * CCOLS; i++) {
+      const el = document.createElement('div');
+      el.className = 'tile' + (MASK[i] ? '' : ' blank');
+      if (MASK[i]) {
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        const sp = document.createElement('div');
+        sp.className = 'spin';
+        for (const [bit, cls] of [[BN,'n'],[BE,'e'],[BS,'s'],[BW,'w']]) {
+          if (!(MASK[i] & bit)) continue;
+          const a = document.createElement('div');
+          a.className = 'arm ' + cls;
+          sp.appendChild(a);
+        }
+        const core = document.createElement('div');
+        core.className = 'core';
+        sp.appendChild(core);
+        el.appendChild(sp);
+        el.addEventListener('click', () => turnTile(i));
+        el.addEventListener('keydown', e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault(); turnTile(i);
+        });
+      }
+      jbox.appendChild(el);
+      tiles.push(el);
+    }
+    paintBox();
+    fitBox();
+  }
+
+  const BOX_W = CCOLS * 62 + (CCOLS - 1) * 3 + 26;
+  const BOX_H = CROWS * 62 + (CROWS - 1) * 3 + 26;
+  function fitBox() {
+    const s = Math.min(1, jbox.parentElement.clientWidth / BOX_W) || 1;
+    jbox.style.transform = s === 1 ? 'none' : `scale(${s})`;
+    jbox.parentElement.style.height = (BOX_H * s) + 'px';
+  }
+
+  function turnTile(i) {
+    if (circuitDone || stage !== 4 || !MASK[i]) return;
+    audio(); turns[i] = (turns[i] + 1) % 4; sSlide();
+    paintBox();
+    if (liveSet().has(LAMP) && (cur(LAMP) & BE)) powerOn(false);
+  }
+
+  const cur = i => spin(MASK[i], turns[i]);
+
+  // Everything the feed can reach through matching open faces.
+  function liveSet() {
+    const seen = new Set();
+    if (!(cur(FEED) & BW)) return seen;         // the feed itself must face the line
+    seen.add(FEED);
+    const q = [FEED];
+    while (q.length) {
+      const at = q.shift(), r = Math.floor(at / CCOLS), c = at % CCOLS;
+      for (const [bit, dr, dc] of CDIRS) {
+        if (!(cur(at) & bit)) continue;
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= CROWS || nc >= CCOLS) continue;
+        const nx = nr * CCOLS + nc;
+        if (!MASK[nx] || !(cur(nx) & COPP[bit]) || seen.has(nx)) continue;
+        seen.add(nx); q.push(nx);
+      }
+    }
+    return seen;
+  }
+
+  function paintBox() {
+    const live = liveSet();
+    tiles.forEach((el, i) => {
+      if (!MASK[i]) return;
+      const sp = el.querySelector('.spin');
+      sp.style.transform = `rotate(${turns[i] * 90}deg)`;
+      el.classList.toggle('live', live.has(i));
+      el.setAttribute('aria-label', `Conduit piece ${i + 1}, ${live.has(i) ? 'live' : 'dead'}. Press Enter to turn it.`);
+    });
+    const n = live.size;
+    $('#circuitCount').textContent = n + (n === 1 ? ' piece live' : ' pieces live');
+    jbox.classList.toggle('on', circuitDone);
+  }
+
+  function powerOn(quiet) {
+    circuitDone = true;
+    padStage.classList.remove('covered');
+    $('#circuitFoot').classList.add('spent');
+    $('#circuitTask').classList.add('spent');
+    $('#circuitTask').textContent = 'The lamp is lit, and the blotter is open under it.';
+    paintBox();
+    if (!quiet) { sOpen(); live.textContent = 'The desk lamp is lit. The pad is under the blotter.'; }
+  }
+
+  function solveBox(quiet) {
+    turns = MASK.map(() => 0);                  // MASK is the solved orientation
+    circuitDone = true;
+    padStage.classList.remove('covered');
+    $('#circuitFoot').classList.add('spent');
+    $('#circuitTask').classList.add('spent');
+    $('#circuitTask').textContent = 'The lamp is lit, and the blotter is open under it.';
+    paintBox();
+    if (!quiet) sOpen();
+  }
+
+  function resetBox() {
+    turns = ROTS.slice(); circuitDone = false;
+    padStage.classList.add('covered');
+    $('#circuitFoot').classList.remove('spent');
+    $('#circuitTask').classList.remove('spent');
+    $('#circuitTask').textContent = 'The junction box for the desk lamp is screwed inside the drawer, and every length of conduit in it is turned the wrong way. Click a piece to turn it. Feed the live line at the bottom left all the way to the lamp terminal at the top right.';
+    paintBox();
+  }
+
+  buildBox();
+
+  // ── Pull ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.lever').forEach(b =>
+    b.addEventListener('click', () => pull(Number(b.dataset.lock))));
+
+  function pull(which) {
+    audio();
+    if (which === 2 && stage === 1) {
+      if (!frameDone) return blocked('The sorting frame in drawer one is still out of order, and the slip that names the word is under it.');
+      return bank2.value() === WORD ? unlock(2) : fail(() => {});
+    }
+    if (which === 3 && stage === 2) {
+      // Not a miss: the answer is unreadable, so getting it wrong is not a
+      // guess that deserves a hint rung spent on it.
+      if (!tornDone) return blocked('The page in drawer two is still in pieces. Put it back together first.');
+      const ok = flipped.size === WIRED.length && WIRED.every(k => flipped.has(k));
+      return ok ? unlock(3) : fail(() => {});
+    }
+    if (which === 4 && stage === 3) {
+      if (!trayDone) return blocked('The pairings are on the filing slip, and the slip is still jammed in the card tray.');
+      const ok = Object.keys(PAIRS).length === Object.keys(wires).length &&
+        Object.entries(PAIRS).every(([l, r]) => wires[l] === r);
+      return ok ? unlock(4) : fail(() => {});
+    }
+    if (which === 5 && stage === 4) {
+      if (!circuitDone) return blocked('The desk lamp is still dead, and the blotter is still shut over the pad.');
+      return bank5.value() === PRESSED ? unlock(5) : fail(() => {});
+    }
+  }
+
+  // ── Outcomes ────────────────────────────────────────────────────────
+  const hint = $('#hint'), live = $('#live');
+  // A lock whose document has not been recovered yet says so, and costs the
+  // player nothing — the miss counter is for wrong answers, not for arriving
+  // early.
+  function blocked(msg) {
+    sWrong();
+    hint.textContent = msg;
+    hint.classList.add('show');
+    live.textContent = msg;
+  }
+  function fail(reset) {
+    misses++;
+    document.body.classList.add('bad');
+    sWrong();
+    live.textContent = 'That is not it.';
+    setTimeout(() => { document.body.classList.remove('bad'); reset(); }, 620);
+    const set = HINTS[stage + 1];
+    if (set) { hint.textContent = set[Math.min(misses - 1, set.length - 1)]; hint.classList.add('show'); }
+  }
+
+  const LOCKS = ['#lock1', '#lock2', '#lock3', '#lock4', '#lock5'];
+  function unlock(which, silent) {
+    if (!silent) sOpen();
+    for (let i = 1; i <= which; i++) {
+      const s = $('#slot' + i);
+      s.classList.add('opened'); s.classList.remove('armed');
+      document.body.classList.add('lit' + Math.min(i, 4));
+      // Solving a lock lifts the bar in the drawer before it: the record gets
+      // one word more complete every time, which is what makes reading pay.
+      // Drawer two's word lives inside twelve cloned pieces, so it is a set.
+      if (i < which) {
+        const sel = i === 2 ? '#torn .red' : '#red' + i;
+        document.querySelectorAll(sel).forEach(r => r.classList.add('lifted'));
+      }
+    }
+    if (which === 5) { $('#red5') && $('#red5').classList.add('lifted'); }
+    if (which < 5) $('#slot' + (which + 1)).classList.add('armed');
+
+    stage = which; misses = 0; hint.classList.remove('show');
+    LOCKS.forEach(sel => $(sel).classList.remove('live'));
+    $('#lockDone').classList.remove('live');
+    if (which < 5) $(LOCKS[which]).classList.add('live'); else $('#lockDone').classList.add('live');
+
+    $('#roomId').textContent = which < 5
+      ? `Room ${which + 1} of 5 · Field Office · After Hours`
+      : 'Cabinet open · Field Office · After Hours';
+    $('#cabCount').textContent = `${which} of 5 unlocked`;
+
+    // Show each solved lock in its solved state rather than blank.
+    if (which >= 1) tums.forEach((t, i) => { t.textContent = String(COMBO[i]).padStart(2, '0'); t.classList.add('set'); });
+    if (which >= 2) bank2.set(WORD);
+    // Reaching a stage means its gate was already worked, so a restored session
+    // finds the page whole and the slip out rather than being asked to earn
+    // them a second time.
+    if (which >= 2) { if (!frameDone) solveFrame(true); fitTorn(); }
+    if (which >= 3) {
+      tornPieces.forEach(p => seatPiece(p, true));
+      flipped.clear(); WIRED.forEach(k => flipped.add(k)); paintSwitches();
+    }
+    if (which >= 4 && !trayDone) solveTrayNow();
+    if (which >= 4) { Object.assign(wires, PAIRS); drawWires();
+      Object.entries(PAIRS).forEach(([l, r]) => { leftEls[l].classList.add('wired'); rightEls[r].classList.add('wired'); }); }
+    if (which >= 5) {
+      if (!circuitDone) solveBox(true);
+      revealPad(); bank5.set(PRESSED); padHint.textContent = '';
+      pad.style.touchAction = 'auto';   // solved: stop eating scrolls
+    }
+
+    live.textContent = which < 5
+      ? `Drawer ${which} is open. Lock ${which + 1} is live.`
+      : 'All five drawers are open.';
+
+    try { localStorage.setItem(KEY, String(which)); } catch (e) {}
+    // The only way past a lock is through it, so the reset appears only once
+    // there is nothing left to bypass.
+    if (!silent) scrollToDrawer(which);
+  }
+
+  // Land on the drawer that just opened, not on the lock below it. The reward
+  // for solving is the document, and scrolling past it to the next puzzle says
+  // the opposite — that the reading was a toll on the way to the next lock.
+  function scrollToDrawer(n) {
+    // Drawer two's document IS its puzzle, so that one gets centred rather than
+    // top-aligned: landing on the slot's top edge put the tab and the
+    // instruction on screen and the pieces half below the fold. The wait is
+    // longer than the others because the drawer's own open transition is still
+    // changing the page height at 780ms.
+    const centre = n === 2;
+    setTimeout(() => {
+      const el = centre ? $('#torn').parentElement : $('#slot' + n);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const top = r.top + window.scrollY;
+      const y = centre && r.height < innerHeight - 48
+        ? top - (innerHeight - r.height) / 2
+        : top - 18;
+      window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
+    }, centre ? 1000 : 780);
+  }
+
+  // ── Chrome ──────────────────────────────────────────────────────────
+  $('#reset').addEventListener('click', e => {
+    {
+      stage = 0; misses = 0; entered = []; picked = null;
+      for (const k of Object.keys(wires)) delete wires[k];
+      document.body.classList.remove('lit1', 'lit2', 'lit3', 'lit4');
+      for (let i = 1; i <= 5; i++) {
+        $('#slot' + i).classList.remove('opened', 'armed');
+        const r = $('#red' + i); if (r) r.classList.remove('lifted');
+      }
+      $('#slot1').classList.add('armed');
+      LOCKS.forEach(sel => $(sel).classList.remove('live'));
+      $('#lockDone').classList.remove('live');
+      $('#lock1').classList.add('live');
+      tums.forEach(t => { t.textContent = '—'; t.classList.remove('set'); });
+      bank2.reset(); bank5.reset(); flipped.clear(); paintSwitches(); clearPad(); drawWires();
+      buildFrame(); buildTorn(); buildTray();
+      $('#tornTask').classList.remove('spent');
+      $('#tornTask').textContent = 'This one came back torn. Drag the pieces together — each will hold when it is close to where it belongs.';
+      $('#trayTask').classList.remove('spent');
+      $('#trayTask').textContent = 'The tray only releases through the slot on the right. Slide the guides out of the way and run the red card out.';
+      document.querySelectorAll('#torn .red').forEach(r => r.classList.remove('lifted'));
+      resetBox();
+      Object.values(leftEls).forEach(el => el.classList.remove('wired', 'live'));
+      Object.values(rightEls).forEach(el => el.classList.remove('wired', 'live'));
+      $('#roomId').textContent = 'Room 1 of 5 · Field Office · After Hours';
+      $('#cabCount').textContent = '0 of 5 unlocked';
+      hint.classList.remove('show');
+      live.textContent = 'All five locks are closed again.';
+      try { localStorage.removeItem(KEY); } catch (err) {}
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    }
+  });
+
+  const sBtn = $('#sound');
+  sBtn.addEventListener('click', () => {
+    on = !on;
+    if (on) { audio(); if (ctx.state === 'suspended') ctx.resume(); }
+    sBtn.textContent = 'Sound: ' + (on ? 'on' : 'off');
+  });
+
+  buildTorn(); buildTray();
+  $('#trayReset').addEventListener('click', () => { audio(); buildTray(); sSlide(); });
+  addEventListener('resize', () => { fitTorn(); fitTray(); fitBox(); });
+
+  try {
+    const saved = Number(localStorage.getItem(KEY) || 0);
+    // chainDone stops the physics loop as well as marking the intro spent —
+    // without it the chain keeps simulating against an element that is gone.
+    if (saved >= 1) { chainDone = true; unlock(saved, true); $('#intro').remove(); }
+  } catch (e) {}
+
+  addEventListener('resize', drawWires);
+  requestAnimationFrame(drawWires);
+
+  // ── Dust ────────────────────────────────────────────────────────────
+  const cv = $('#dust'), g2 = cv.getContext('2d');
+  let motes = [], W = 0, H = 0;
+  function size() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr; g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function seed() {
+    motes = Array.from({ length: 30 }, (_, i) => ({
+      x: (i * 137.5) % W, y: (i * 91.3) % H,
+      r: .6 + (i % 5) * .32, vx: .08 + (i % 4) * .045, vy: -.05 - (i % 3) * .03,
+      a: .1 + (i % 6) * .05,
+    }));
+  }
+  function drift() {
+    g2.clearRect(0, 0, W, H);
+    for (const m of motes) {
+      m.x += m.vx; m.y += m.vy;
+      if (m.y < -6) { m.y = H + 6; m.x = (m.x + 211) % W; }
+      if (m.x > W + 6) m.x = -6;
+      const d = Math.hypot(m.x - W * .5, m.y - H * .22) / (W * .42);
+      const a = m.a * Math.max(0, 1 - d);
+      if (a > .01) {
+        g2.beginPath(); g2.arc(m.x, m.y, m.r, 0, 6.284);
+        g2.fillStyle = `rgba(255,216,155,${a})`; g2.fill();
+      }
+    }
+    requestAnimationFrame(drift);
+  }
+  size(); seed();
+  if (!reduce) requestAnimationFrame(drift);
+  addEventListener('resize', () => { size(); seed(); });
+})();
+</script>
