@@ -42,14 +42,6 @@
        stricter touch-action: none still wins on themselves. */
     touch-action: manipulation;
   }
-  /* On a touchscreen the prose is a hazard: a double-tap or long-press beside
-     a control grabs a word, and once the selection UI is up it swallows every
-     touch after it — the room reads as frozen under blue highlight. Documents
-     stay selectable where selecting is deliberate (a mouse); fingers get no
-     selection anywhere, lifted bars included. */
-  @media (pointer: coarse) {
-    body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  }
   /* Hover is a mouse promise. On a touchscreen it sticks: iOS leaves the
      last-tapped control wearing its hover tint, so a switch flipped and
      flipped back kept a ghost highlight that read as state. Hover styling
@@ -111,14 +103,13 @@
   }
   /* Tapping a control must never double-tap-zoom the room. */
   .lnk, .minibtn, .setbtn, .lever, .sw, .term { touch-action: manipulation; }
-  /* Every control you drag, and nothing you read. Spinning the dial used to
-     sweep a text selection across its own numerals, which highlighted the face
-     blue and made the brass look broken. Seated pieces and the filing slip are
-     deliberately left out — those are documents, and documents stay selectable. */
-  .dial, .dial *, .window, .tums, .wheels, .wheel, .switchbank, .board,
-  .tray, .blk, .lever, .setbtn, .minibtn, canvas.pad, #chain, #chain *,
-  .piece:not(.seated) {
-    -webkit-user-select: none; user-select: none;
+  /* Nothing selects — anywhere, any device (Josh's call, 2026-08-20). The
+     room once kept its documents selectable on desktop as a paper-realism
+     nicety, and that one nicety kept resurfacing as bugs: drags sweeping
+     blue highlight across the dial, double-taps freezing phones behind the
+     selection UI. Reading never needed selecting; the ability is gone. */
+  html, body {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
   }
   :focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
   .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -428,12 +419,7 @@
   }
   .red.lifted {
     background: rgba(201,162,39,.42); color: var(--ink);
-    box-shadow: none; font-weight: 700; user-select: auto;
-  }
-  /* After the body-level rule above would let it through: a lifted bar is
-     three taps wide — exactly the double-tap-selection trap fingers fall in. */
-  @media (pointer: coarse) {
-    .red.lifted { -webkit-user-select: none; user-select: none; }
+    box-shadow: none; font-weight: 700;
   }
 
   /* ── Locks ────────────────────────────────────────────────────────── */
