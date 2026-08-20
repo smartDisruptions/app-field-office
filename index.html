@@ -30,6 +30,10 @@
     overflow-x: hidden; position: relative;
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* No double-tap zoom anywhere — a second tap near a control used to
+       lurch the page instead. Scroll and pinch-zoom stay; the drag controls'
+       stricter touch-action: none still wins on themselves. */
+    touch-action: manipulation;
   }
   /* On a touchscreen the prose is a hazard: a double-tap or long-press beside
      a control grabs a word, and once the selection UI is up it swallows every
@@ -1436,7 +1440,7 @@
   const bead = [];
   for (let i = 0; i < BEADS; i++) bead.push({ x: CW / 2, y: TOP_Y + i * SEG, px: CW / 2, py: TOP_Y + i * SEG });
 
-  let grabbed = false, pulled = false, chainDone = false;
+  let grabbed = false, pulled = false, chainDone = false, chainPid = null;
 
   function stepChain() {
     for (let i = 1; i < BEADS; i++) {
@@ -1503,21 +1507,22 @@
     return { x: (e.clientX - r.left) * (CW / r.width), y: (e.clientY - r.top) * (CH / r.height) };
   }
   chainCv.addEventListener('pointerdown', e => {
+    if (grabbed) return;                                 // one hand on the chain
     const p = pointerToCv(e), k = bead[BEADS - 1];
     if (Math.hypot(p.x - k.x, p.y - k.y) > 34) return;   // must actually take hold of the knob
-    grabbed = true; chainCv.setPointerCapture(e.pointerId);
+    grabbed = true; chainPid = e.pointerId; chainCv.setPointerCapture(e.pointerId);
     audio();
   });
   chainCv.addEventListener('pointermove', e => {
-    if (!grabbed) return;
+    if (!grabbed || e.pointerId !== chainPid) return;
     const p = pointerToCv(e), k = bead[BEADS - 1];
     k.px = k.x; k.py = k.y;
     k.x = Math.max(12, Math.min(CW - 12, p.x));
     k.y = Math.min(CH - 12, Math.max(REST_Y - 20, p.y));
     if (k.y - REST_Y > TRIGGER) pulled = true;
   });
-  function releaseChain() {
-    if (!grabbed) return;
+  function releaseChain(e) {
+    if (!grabbed || e.pointerId !== chainPid) return;
     grabbed = false;
     if (pulled) lightOn();
     pulled = false;
@@ -1554,7 +1559,10 @@
       face.appendChild(n); numEls[i] = n;
     }
   }
-  let angle = 0, current = 0, lastNotch = 0, entered = [], dragging = false, startA = 0, startAng = 0;
+  // One finger owns a drag: a second touch landing mid-turn (a thumb, a palm
+  // edge) used to hijack the ring and throw the number. Every dragged control
+  // remembers which pointer took hold and answers only to it.
+  let angle = 0, current = 0, lastNotch = 0, entered = [], dragging = false, startA = 0, startAng = 0, dialPid = null;
   const norm = a => ((a % 360) + 360) % 360;
   function renderDial() {
     face.style.transform = `rotate(${angle}deg)`;
@@ -1586,23 +1594,23 @@
     return d;
   };
   dial.addEventListener('pointerdown', e => {
-    if (stage !== 0) return;
-    audio(); dragging = true; startA = angleOf(e); startAng = angle; dial.setPointerCapture(e.pointerId);
+    if (stage !== 0 || dragging) return;
+    audio(); dragging = true; dialPid = e.pointerId; startA = angleOf(e); startAng = angle; dial.setPointerCapture(e.pointerId);
   });
   // Snapped to whole notches, so the dial detents onto a number instead of
   // resting between two and leaving you guessing which one it took. The raw
   // angle is accumulated separately from the snapped one, or the rounding would
   // eat every movement smaller than a notch.
   dial.addEventListener('pointermove', e => {
-    if (!dragging) return;
+    if (!dragging || e.pointerId !== dialPid) return;
     const now = angleOf(e);
     startAng += unwrapDelta(now - startA);
     startA = now;
     angle = Math.round(startAng / 9) * 9;
     renderDial();
   });
-  dial.addEventListener('pointerup', () => { dragging = false; });
-  dial.addEventListener('pointercancel', () => { dragging = false; });
+  dial.addEventListener('pointerup', e => { if (e.pointerId === dialPid) dragging = false; });
+  dial.addEventListener('pointercancel', e => { if (e.pointerId === dialPid) dragging = false; });
   dial.addEventListener('keydown', e => {
     if (stage !== 0) return;
     audio();
@@ -1638,13 +1646,13 @@
       w.innerHTML = '<i class="a"></i><i class="b"></i><i class="c"></i>';
       host.appendChild(w); els.push(w);
 
-      let dy = 0, down = false, base = 0, spun = false;
+      let dy = 0, down = false, base = 0, spun = false, pid = null;
       w.addEventListener('pointerdown', e => {
-        if (stage !== activeStage) return;
-        audio(); down = true; spun = false; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
+        if (stage !== activeStage || down) return;
+        audio(); down = true; pid = e.pointerId; spun = false; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
       });
       w.addEventListener('pointermove', e => {
-        if (!down) return;
+        if (!down || e.pointerId !== pid) return;
         const step = Math.round((dy - e.clientY) / 18);
         if (step) spun = true;
         const next = ((base + step) % alphabet.length + alphabet.length) % alphabet.length;
@@ -1655,6 +1663,7 @@
       // expecting exactly this, and a wheel that answers only to dragging
       // reads as stuck. Dead-centre taps do nothing rather than guess.
       w.addEventListener('pointerup', e => {
+        if (e.pointerId !== pid) return;
         if (down && !spun && stage === activeStage) {
           const r = w.getBoundingClientRect();
           const off = e.clientY - r.top;
@@ -1666,7 +1675,7 @@
         }
         down = false;
       });
-      w.addEventListener('pointercancel', () => { down = false; });
+      w.addEventListener('pointercancel', e => { if (e.pointerId === pid) down = false; });
       w.addEventListener('keydown', e => {
         if (stage !== activeStage) return;
         audio();
@@ -2004,13 +2013,19 @@
 
       const home = { x: PX + ox, y: PY + oy };
       // Strewn across the whole tray and tilted, the way a torn-up page
-      // actually lands. Confined to the margins it read as a grid with gaps in
-      // it — which gave away where every piece belonged.
-      let sx = rnd() * (TRAY_W - cw - PAD), sy = rnd() * (TRAY_H - ch - PAD);
-      // Nothing starts near enough to its home to be mistaken for placed.
-      if (Math.hypot(sx - home.x, sy - home.y) < 90) {
-        sx = (sx + TRAY_W / 2) % (TRAY_W - cw - PAD);
-        sy = (sy + TRAY_H / 2) % (TRAY_H - ch - PAD);
+      // actually lands — but wholly inside it: the wrapper clips its overflow,
+      // so a piece allowed to straddle the rim arrives pre-torn a second time,
+      // its sliver past the edge unreadable and hard to grab. M covers the
+      // corner a tilted piece swings outside its own box.
+      const M = 16;
+      const spanX = TRAY_W - (cw + PAD * 2) - M * 2;
+      const spanY = TRAY_H - (ch + PAD * 2) - M * 2;
+      let sx = M + rnd() * spanX, sy = M + rnd() * spanY;
+      // Nothing starts near enough to its home to be mistaken for placed —
+      // re-dealt (still deterministic) rather than folded toward the middle,
+      // which used to pile half the pieces into one heap.
+      for (let deal = 0; deal < 8 && Math.hypot(sx - home.x, sy - home.y) < 90; deal++) {
+        sx = M + rnd() * spanX; sy = M + rnd() * spanY;
       }
       const rot = (rnd() - .5) * 26;
       Object.assign(el.style, { left: sx.toFixed(1) + 'px', top: sy.toFixed(1) + 'px', transform: `rotate(${rot.toFixed(1)}deg)`, zIndex: String(2 + Math.floor(rnd() * 8)) });
@@ -2020,6 +2035,9 @@
       wirePiece(piece);
       torn.appendChild(el);
     }
+    // A rebuild (resize, an orientation turn) reclones the page from the
+    // template, which forgets the bars later locks already lifted.
+    if (stage >= 3) torn.querySelectorAll('.red').forEach(r => r.classList.add('lifted'));
     applyTornScale();
   }
 
@@ -2077,9 +2095,10 @@
     const el = p.el;
     let grab = null;
     el.addEventListener('pointerdown', e => {
-      if (p.done || stage !== 2) return;
+      if (p.done || stage !== 2 || grab) return;
       const s = tornScale(), r = torn.getBoundingClientRect();
-      grab = { dx: (e.clientX - r.left) / s - parseFloat(el.style.left),
+      grab = { pid: e.pointerId,
+               dx: (e.clientX - r.left) / s - parseFloat(el.style.left),
                dy: (e.clientY - r.top) / s - parseFloat(el.style.top) };
       el.classList.remove('settling');
       el.style.zIndex = '40';
@@ -2087,7 +2106,7 @@
       audio(); e.preventDefault();
     });
     el.addEventListener('pointermove', e => {
-      if (!grab) return;
+      if (!grab || e.pointerId !== grab.pid) return;
       const s = tornScale(), r = torn.getBoundingClientRect();
       // Held inside the tray. The page now runs edge to edge, so an unclamped
       // drag could park a piece in the overflow where it cannot be got back.
@@ -2096,8 +2115,8 @@
       el.style.left = Math.max(-PAD, Math.min(TRAY_W - el.offsetWidth + PAD, x)).toFixed(1) + 'px';
       el.style.top = Math.max(0, Math.min(TRAY_H - el.offsetHeight, y)).toFixed(1) + 'px';
     });
-    const drop = () => {
-      if (!grab) return;
+    const drop = e => {
+      if (!grab || e.pointerId !== grab.pid) return;
       grab = null;
       const dx = parseFloat(el.style.left) - p.home.x, dy = parseFloat(el.style.top) - p.home.y;
       if (Math.hypot(dx, dy) < SNAP) seatPiece(p);
@@ -2225,15 +2244,15 @@
   function wireBlock(b) {
     let grab = null;
     b.el.addEventListener('pointerdown', e => {
-      if (trayDone || stage !== 3) return;
+      if (trayDone || stage !== 3 || grab) return;
       const s = trayScale();
-      grab = { x: e.clientX / s, y: e.clientY / s, r: b.r, c: b.c, span: span(b) };
+      grab = { pid: e.pointerId, x: e.clientX / s, y: e.clientY / s, r: b.r, c: b.c, span: span(b) };
       b.el.classList.remove('settle');
       b.el.setPointerCapture(e.pointerId);
       audio(); e.preventDefault();
     });
     b.el.addEventListener('pointermove', e => {
-      if (!grab) return;
+      if (!grab || e.pointerId !== grab.pid) return;
       const s = trayScale(), [lo, hi] = grab.span;
       if (b.dir === 'h') {
         const px = grab.c * CELL + (e.clientX / s - grab.x);
@@ -2243,8 +2262,8 @@
         b.el.style.top = (Math.max(lo, Math.min(hi, py / CELL)) * CELL + 3) + 'px';
       }
     });
-    const release = () => {
-      if (!grab) return;
+    const release = e => {
+      if (!grab || e.pointerId !== grab.pid) return;
       const px = parseFloat(b.dir === 'h' ? b.el.style.left : b.el.style.top) - 3;
       grab = null;
       moveBlock(b, Math.round(px / CELL));
@@ -2562,6 +2581,14 @@
     for (let i = 1; i <= which; i++) {
       const s = $('#slot' + i);
       s.classList.add('opened'); s.classList.remove('armed');
+      // The --openh caps are animation targets sized on a desktop; a phone
+      // wraps the same prose taller and the fixed ceiling silently cropped
+      // the bottom of a drawer. Animate to the measured height instead, and
+      // take the ceiling off entirely once the slide has landed, so content
+      // that grows later (the uncovered exhibit, a released slip) fits too.
+      const int_ = s.querySelector('.interior');
+      int_.style.maxHeight = (int_.scrollHeight + 60) + 'px';
+      setTimeout(() => { if (s.classList.contains('opened')) int_.style.maxHeight = 'none'; }, 900);
       document.body.classList.add('lit' + Math.min(i, 4));
       // Solving a lock lifts the bar in the drawer before it: the record gets
       // one word more complete every time, which is what makes reading pay.
@@ -2644,6 +2671,8 @@
       document.body.classList.remove('lit1', 'lit2', 'lit3', 'lit4');
       for (let i = 1; i <= 5; i++) {
         $('#slot' + i).classList.remove('opened', 'armed');
+        // Put the animation ceiling back so the drawer can seal shut again.
+        $('#slot' + i).querySelector('.interior').style.maxHeight = '';
         const r = $('#red' + i); if (r) r.classList.remove('lifted');
       }
       $('#slot1').classList.add('armed');
