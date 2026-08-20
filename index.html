@@ -2,6 +2,10 @@
 <!-- Without this, phones lay the page out at ~980px and shrink it to fit —
      the whole room arrives at half size with the type unreadable. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- The room is already dark. Browsers' forced-dark modes invert pages that
+     do not say so: every solid-color surface flipped to white while the
+     gradient ones kept their oak, and the office came out bleached. -->
+<meta name="color-scheme" content="dark">
 <title>The Pembroke File — a locked-cabinet mystery</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314100d'/%3E%3Cpath d='M16 26h32L40 15H24Zm0 0 16 23 16-23' fill='none' stroke='%23c9a227' stroke-width='3.5' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -23,6 +27,9 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* Belt to the meta tag's braces: auto-dark inverters check both. */
+  :root { color-scheme: dark; }
 
   body {
     background: var(--room-lo); color: var(--manila);
@@ -728,7 +735,10 @@
     .wheel .b { font-size: 16px; top: 23px; }
     .rows { grid-template-columns: 1fr; }
     .board .mid { display: none; }
-    .term.right { flex-direction: row; text-align: left; }
+    /* Stacked, the two kinds of terminal need telling apart: destinations
+       sit indented under the things that went to them, and the cable gutter
+       on the left stays clear for drawWires' brackets. */
+    .term.right { flex-direction: row; text-align: left; margin-left: 26px; }
     /* On a phone the TO/RE lines wrap into the stamp's corner, so the stamp
        joins the flow under the heading instead of floating over the text —
        and the first paragraph gets its full measure back. */
@@ -1798,15 +1808,33 @@
   function drawWires() {
     cables.innerHTML = '';
     const box = cables.getBoundingClientRect();
+    // Two layouts, two geometries. Side by side, a cable crosses the middle
+    // gap edge to edge. Stacked in one column (phones), that same maths drew
+    // an edge-to-edge diagonal straight through every row between — three
+    // wires read as scribble. Stacked cables now run jack to jack down the
+    // left gutter, each pair bowed to its own depth so the runs stay apart.
+    const stacked = getComputedStyle(rows).gridTemplateColumns.split(' ').length === 1;
+    const dotOf = el => {
+      const d = el.querySelector('.jackdot').getBoundingClientRect();
+      return { x: d.left + d.width / 2 - box.left, y: d.top + d.height / 2 - box.top };
+    };
+    let n = 0;
     for (const [l, r] of Object.entries(wires)) {
-      const A1 = leftEls[l].getBoundingClientRect(), B1 = rightEls[r].getBoundingClientRect();
-      const x1 = A1.right - box.left - 10, y1 = A1.top - box.top + A1.height / 2;
-      const x2 = B1.left - box.left + 10, y2 = B1.top - box.top + B1.height / 2;
       const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      p.setAttribute('d', `M${x1},${y1} C${x1 + 34},${y1 + 16} ${x2 - 34},${y2 + 16} ${x2},${y2}`);
+      if (stacked) {
+        const a = dotOf(leftEls[l]), b = dotOf(rightEls[r]);
+        const d = 24 + n * 9;
+        p.setAttribute('d', `M${a.x},${a.y} C${a.x - d},${a.y} ${b.x - d},${b.y} ${b.x},${b.y}`);
+      } else {
+        const A1 = leftEls[l].getBoundingClientRect(), B1 = rightEls[r].getBoundingClientRect();
+        const x1 = A1.right - box.left - 10, y1 = A1.top - box.top + A1.height / 2;
+        const x2 = B1.left - box.left + 10, y2 = B1.top - box.top + B1.height / 2;
+        p.setAttribute('d', `M${x1},${y1} C${x1 + 34},${y1 + 16} ${x2 - 34},${y2 + 16} ${x2},${y2}`);
+      }
       p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'var(--wire)');
       p.setAttribute('stroke-width', '2.5'); p.setAttribute('stroke-linecap', 'round');
       cables.appendChild(p);
+      n++;
     }
   }
   rows.addEventListener('click', e => {
