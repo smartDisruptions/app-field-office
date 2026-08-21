@@ -31,6 +31,17 @@
   /* Belt to the meta tag's braces: auto-dark inverters check both. */
   :root { color-scheme: dark; }
 
+  /* The room is dark from the first painted frame — the root carries the
+     color itself so a reload or an overscroll rubber-band never shows the
+     browser's white canvas behind the page. And scrolling hard off the top
+     must not trigger pull-to-refresh: bouncing off the memo reloaded the
+     whole game mid-play, which arrived as a white flash out of nowhere. */
+  html {
+    background: var(--room-lo);
+    overscroll-behavior-y: none;
+  }
+  body { overscroll-behavior-y: none; }
+
   body {
     background: var(--room-lo); color: var(--manila);
     font-family: var(--legend); min-height: 100vh;
@@ -65,8 +76,8 @@
   }
   body.lit1 .pool { transform: scale(1.08); }
   body.lit2 .pool { transform: scale(1.14); }
-  body.lit3 .pool { transform: scale(1.2); opacity: 1.1; }
-  body.lit4 .pool { transform: scale(1.26); opacity: 1.2; }
+  body.lit3 .pool { transform: scale(1.2); }
+  body.lit4 .pool { transform: scale(1.26); }
   .grain {
     position: fixed; inset: 0; pointer-events: none; z-index: 2; opacity: .5;
     background-image: radial-gradient(rgba(255,255,255,.035) .5px, transparent .5px);
@@ -238,7 +249,16 @@
     transition: transform .95s cubic-bezier(.22,1,.28,1), opacity .6s .35s;
     display: flex; align-items: center; justify-content: center; gap: 13px;
   }
-  .slot.opened .drawer { transform: translateY(24px) rotateX(78deg); opacity: 0; pointer-events: none; }
+  /* Once the fall-open animation lands, the front leaves the compositor
+     entirely. Left at mere opacity 0 it kept a 3D-transformed layer as tall
+     as its whole open drawer — five of them, drawer-height by three-times-DPR
+     wide — and that standing GPU load is the kind that makes a phone start
+     painting white tiles under scroll pressure. */
+  .slot.opened .drawer {
+    transform: translateY(24px) rotateX(78deg); opacity: 0; pointer-events: none;
+    visibility: hidden;
+    transition: transform .95s cubic-bezier(.22,1,.28,1), opacity .6s .35s, visibility 0s 1.05s;
+  }
   .slot.armed .drawer { box-shadow: 0 8px 20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 2px rgba(255,216,155,.5); }
 
   .plate {
