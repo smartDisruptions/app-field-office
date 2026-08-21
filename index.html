@@ -121,6 +121,10 @@
   }
   /* Tapping a control must never double-tap-zoom the room. */
   .lnk, .minibtn, .setbtn, .lever, .sw, .term { touch-action: manipulation; }
+  .rev {
+    align-self: center; font-size: 8.5px; letter-spacing: .18em;
+    text-transform: uppercase; color: rgba(222,211,184,.32);
+  }
   /* Nothing selects — anywhere, any device (Josh's call, 2026-08-20). The
      room once kept its documents selectable on desktop as a paper-realism
      nicety, and that one nicety kept resurfacing as bugs: drags sweeping
@@ -1317,6 +1321,10 @@
   <div class="tools">
     <button class="lnk" id="sound">Sound: on</button>
     <button class="lnk" id="reset">Reset the locks</button>
+    <!-- Which build is this phone actually running? Bug reports kept racing
+         deploys; the answer is now printed on the file itself. Bump with
+         every shipped change. -->
+    <span class="rev">File rev 9</span>
   </div>
 </div>
 
@@ -1326,6 +1334,18 @@
 (() => {
   'use strict';
   const $ = s => document.querySelector(s);
+  // setPointerCapture throws NotFoundError when the pointer died between the
+  // event firing and the call — a palm graze, a cancelled touch, a tap
+  // released in the same instant. Thrown uncaught inside a pointerdown
+  // handler it left the control's drag flag stuck true forever: a dial that
+  // permanently refuses the finger. So capture GATES every grab: a pointer
+  // that cannot be captured is already dead, will never move or lift, and
+  // must not be allowed to own a drag.
+  const capture = (el, e) => {
+    if (!el.setPointerCapture) return true;   // ancient engine: drag uncaptured
+    try { el.setPointerCapture(e.pointerId); } catch (err) { return false; }
+    return true;
+  };
   const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const NOTCHES = 40;
   const KEY = 'pembroke.v1';
@@ -1441,7 +1461,16 @@
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .02);
   }
-  const sTick  = () => noise(.018, .16, 2600);
+  // Rate-limited: a hard spin crosses notches faster than ears can separate
+  // clicks, and building a fresh audio graph per notch at 120Hz pointer rate
+  // is pure heat on a weak phone.
+  let lastTickAt = 0;
+  const sTick  = () => {
+    const t = performance.now();
+    if (t - lastTickAt < 30) return;
+    lastTickAt = t;
+    noise(.018, .16, 2600);
+  };
   const sSet   = () => { noise(.07, .5, 900, 320); tone(180, 90, .09, .22, 'square'); };
   const sWheel = () => { noise(.03, .3, 1500, 900); tone(320, 240, .05, .09, 'square'); };
   const sPatch = () => { noise(.05, .35, 700, 420); tone(420, 300, .07, .1, 'triangle'); };
@@ -1569,7 +1598,8 @@
     if (grabbed) return;                                 // one hand on the chain
     const p = pointerToCv(e), k = bead[BEADS - 1];
     if (Math.hypot(p.x - k.x, p.y - k.y) > 34) return;   // must actually take hold of the knob
-    grabbed = true; chainPid = e.pointerId; chainCv.setPointerCapture(e.pointerId);
+    if (!capture(chainCv, e)) return;
+    grabbed = true; chainPid = e.pointerId;
     audio();
   });
   chainCv.addEventListener('pointermove', e => {
@@ -1652,13 +1682,14 @@
   // ring most of a revolution any time a drag passed the left of the dial. Every
   // rotating control routes its delta through here.
   const unwrapDelta = d => {
+    if (!isFinite(d)) return 0;      // a NaN/Infinity here would loop forever
     while (d > 180) d -= 360;
     while (d < -180) d += 360;
     return d;
   };
   dial.addEventListener('pointerdown', e => {
-    if (stage !== 0 || dragging) return;
-    audio(); dragging = true; dialPid = e.pointerId; startA = angleOf(e); startAng = angle; dial.setPointerCapture(e.pointerId);
+    if (stage !== 0 || dragging || !capture(dial, e)) return;
+    audio(); dragging = true; dialPid = e.pointerId; startA = angleOf(e); startAng = angle;
   });
   // Snapped to whole notches, so the dial detents onto a number instead of
   // resting between two and leaving you guessing which one it took. The raw
@@ -1712,8 +1743,8 @@
 
       let dy = 0, down = false, base = 0, spun = false, pid = null;
       w.addEventListener('pointerdown', e => {
-        if (stage !== activeStage || down) return;
-        audio(); down = true; pid = e.pointerId; spun = false; dy = e.clientY; base = vals[i]; w.setPointerCapture(e.pointerId);
+        if (stage !== activeStage || down || !capture(w, e)) return;
+        audio(); down = true; pid = e.pointerId; spun = false; dy = e.clientY; base = vals[i];
       });
       w.addEventListener('pointermove', e => {
         if (!down || e.pointerId !== pid) return;
@@ -1961,8 +1992,15 @@
     rubbed++;
     if (rubbed === 6) padHint.textContent = 'Something was written on the sheet above this one';
     if (rubbed === 40) padHint.textContent = '';
-    paintPad();
+    // The stamps land per pointer event (up to 120Hz), but the four-layer
+    // composite only needs to happen once a frame — repainting per event
+    // stalled the main thread on slower phones.
+    if (!padDirty) {
+      padDirty = true;
+      requestAnimationFrame(() => { padDirty = false; paintPad(); });
+    }
   }
+  let padDirty = false;
 
   let rubbing = false, lastRub = 0;
   function padPoint(e) {
@@ -1970,8 +2008,8 @@
     return [(e.clientX - b.left) * (PW / b.width), (e.clientY - b.top) * (PH / b.height)];
   }
   pad.addEventListener('pointerdown', e => {
-    if (stage !== 4) return;
-    audio(); rubbing = true; pad.setPointerCapture(e.pointerId);
+    if (stage !== 4 || !capture(pad, e)) return;
+    audio(); rubbing = true;
     rubAt(...padPoint(e)); e.preventDefault();
   });
   pad.addEventListener('pointermove', e => {
@@ -2185,14 +2223,13 @@
     const el = p.el;
     let grab = null;
     el.addEventListener('pointerdown', e => {
-      if (p.done || stage !== 2 || grab) return;
+      if (p.done || stage !== 2 || grab || !capture(el, e)) return;
       const s = tornScale(), r = torn.getBoundingClientRect();
       grab = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false,
                dx: (e.clientX - r.left) / s - parseFloat(el.style.left),
                dy: (e.clientY - r.top) / s - parseFloat(el.style.top) };
       el.classList.remove('settling');
       el.style.zIndex = '40';
-      el.setPointerCapture(e.pointerId);
       audio(); e.preventDefault();
     });
     el.addEventListener('pointermove', e => {
@@ -2346,11 +2383,10 @@
   function wireBlock(b) {
     let grab = null;
     b.el.addEventListener('pointerdown', e => {
-      if (trayDone || stage !== 3 || grab) return;
+      if (trayDone || stage !== 3 || grab || !capture(b.el, e)) return;
       const s = trayScale();
       grab = { pid: e.pointerId, x: e.clientX / s, y: e.clientY / s, r: b.r, c: b.c, span: span(b), moved: false };
       b.el.classList.remove('settle');
-      b.el.setPointerCapture(e.pointerId);
       audio(); e.preventDefault();
     });
     b.el.addEventListener('pointermove', e => {
@@ -2897,7 +2933,12 @@
     requestAnimationFrame(drift);
   }
   size(); seed();
-  if (!reduce) requestAnimationFrame(drift);
+  // The dust is scene-setting, not gameplay — and a full-screen canvas
+  // repainting sixty times a second forever is standing load a mid-range
+  // phone pays in heat, jank, and eventually white tiles. Desktops keep it;
+  // touchscreens get a still room.
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  if (!reduce && !coarse) requestAnimationFrame(drift);
   addEventListener('resize', () => { size(); seed(); });
 })();
 </script>
