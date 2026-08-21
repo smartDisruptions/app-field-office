@@ -774,6 +774,13 @@
     .setbtn { padding: 12px 22px; }
     .lever { padding: 13px 30px; }
     .sw, .term { padding: 10px 11px; }
+    /* No full-viewport overlay layers on phones. The lamp pool — fixed,
+       scale-transformed, transitioned — and the dust canvas each hold a
+       screen-sized GPU texture over the whole game, and the washed-out
+       glow in every white-screen report matches the pool's own ellipse:
+       when the phone's compositor buckles, these are what it drops first
+       and renders wrong. Desktops keep the atmosphere; phones keep working. */
+    .pool, canvas.dust { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition-duration: .001ms !important; }
@@ -1324,7 +1331,7 @@
     <!-- Which build is this phone actually running? Bug reports kept racing
          deploys; the answer is now printed on the file itself. Bump with
          every shipped change. -->
-    <span class="rev">File rev 9</span>
+    <span class="rev">File rev 10</span>
   </div>
 </div>
 
