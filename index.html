@@ -1,7 +1,11 @@
 <meta charset="utf-8">
 <!-- Without this, phones lay the page out at ~980px and shrink it to fit —
      the whole room arrives at half size with the type unreadable. -->
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Zoom is off (Josh's call, 2026-08-21): pinch-zooming a room full of
+     animated full-screen layers forces per-frame re-rasterisation at
+     zoom-times-DPR — dragging a lock while zoomed lagged into white tiles.
+     Every control is finger-sized; the zoom bought nothing but the crash. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <!-- The room is already dark. Browsers' forced-dark modes invert pages that
      do not say so: every solid-color surface flipped to white while the
      gradient ones kept their oak, and the office came out bleached. -->
@@ -48,10 +52,13 @@
     overflow-x: hidden; position: relative;
     -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
-    /* No double-tap zoom anywhere — a second tap near a control used to
-       lurch the page instead. Scroll and pinch-zoom stay; the drag controls'
-       stricter touch-action: none still wins on themselves. */
-    touch-action: manipulation;
+    /* Panning only: no double-tap zoom (a second tap near a control used to
+       lurch the page) and no pinch-zoom (see the viewport meta — zoomed
+       drags re-rasterise the whole room per frame and white-screen phones).
+       The drag controls' stricter touch-action: none still wins on
+       themselves, and this body-level cap covers browsers that ignore
+       user-scalable=no. */
+    touch-action: pan-x pan-y;
   }
   /* Hover is a mouse promise. On a touchscreen it sticks: iOS leaves the
      last-tapped control wearing its hover tint, so a switch flipped and
@@ -1387,6 +1394,12 @@
   };
 
   let stage = 0, misses = 0;
+
+  // iOS Safari ignores user-scalable=no; its proprietary gesture events are
+  // the lever that actually stops a pinch there. No-ops everywhere else.
+  for (const g of ['gesturestart', 'gesturechange']) {
+    document.addEventListener(g, e => e.preventDefault());
+  }
 
   // ── Sound ───────────────────────────────────────────────────────────
   // On by default: the room is half sound. The browser will not let audio
