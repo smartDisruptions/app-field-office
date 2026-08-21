@@ -35,3 +35,7 @@ Canvas physics (Verlet chain), Web Audio synthesis, pointer-event puzzles,
 difficulty-verified by breadth-first search before shipping.
 
 Built with [Claude Code](https://claude.com/claude-code).
+
+Plays on phones: the room fits any screen, every puzzle works by touch,
+and the footer prints the build revision ("File rev N") so a bug report
+can say which version it saw.
