@@ -39,3 +39,7 @@ Built with [Claude Code](https://claude.com/claude-code).
 Plays on phones: the room fits any screen, every puzzle works by touch,
 and the footer prints the build revision ("File rev N") so a bug report
 can say which version it saw.
+
+The touch pass, for the record: every control answers a tap or a drag,
+nothing selects or zooms out from under a finger, and the room sheds its
+full-screen atmosphere layers on phones so weak GPUs never buckle.
